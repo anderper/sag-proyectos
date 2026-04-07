@@ -1,20 +1,19 @@
 /**
- * GOOGLE APPS SCRIPT - BACKEND PARA SAG PROYECTOS TI
- * Este script convierte tu Google Sheet en una API para la aplicación web.
+ * GOOGLE APPS SCRIPT - BACKEND SAG PROYECTOS TI (VERSIÓN 2.0)
+ * Ahora permite insertar, actualizar y ELIMINAR filas según el ID.
  */
 
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 
-// 1. Manejador de peticiones GET: Lee datos del Excel
 function doGet(e) {
   const sheetName = e.parameter.sheet || "Proyectos";
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   
-  if (!sheet) {
-    return createResponse({ error: "Hoja no encontrada: " + sheetName });
-  }
+  if (!sheet) return createResponse([]);
   
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return createResponse([]); // Solo cabeceras
+
   const headers = data[0];
   const rows = data.slice(1);
   
@@ -29,46 +28,44 @@ function doGet(e) {
   return createResponse(jsonData);
 }
 
-// 2. Manejador de peticiones POST: Escribe o actualiza datos
 function doPost(e) {
   try {
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
     const sheetName = params.sheet || "Proyectos";
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     
     if (!sheet) {
-      // Si la hoja no existe, la creamos al vuelo
-      const newSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetName);
-      const headers = Object.keys(params.data);
-      newSheet.appendRow(headers);
-      newSheet.appendRow(headers.map(h => params.data[h]));
-      return createResponse({ success: true, message: "Hoja creada y datos insertados" });
+      sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetName);
+      sheet.appendRow(Object.keys(params.data));
     }
 
+    const dataRows = sheet.getDataRange().getValues();
+    const headers = dataRows[0];
+    const idIndex = headers.indexOf("id");
+
     if (action === "insert") {
-      const headers = sheet.getDataRange().getValues()[0];
       const newRow = headers.map(h => params.data[h] !== undefined ? params.data[h] : "");
       sheet.appendRow(newRow);
       return createResponse({ success: true });
     } 
     
-    if (action === "update") {
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
-      const idIndex = headers.indexOf("id");
-      const idToUpdate = params.data.id;
-      
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][idIndex] == idToUpdate) {
-          const updatedRow = headers.map(h => params.data[h] !== undefined ? params.data[h] : data[i][headers.indexOf(h)]);
-          sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
+    if (action === "update" || action === "delete") {
+      const idToSearch = params.data.id;
+      for (let i = 1; i < dataRows.length; i++) {
+        if (dataRows[i][idIndex] == idToSearch) {
+          if (action === "update") {
+            const updatedRow = headers.map(h => params.data[h] !== undefined ? params.data[h] : dataRows[i][headers.indexOf(h)]);
+            sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
+          } else if (action === "delete") {
+            sheet.deleteRow(i + 1);
+          }
           return createResponse({ success: true });
         }
       }
     }
     
-    return createResponse({ error: "Acción no reconocida" });
+    return createResponse({ error: "Acción no realizada", detail: "ID no encontrado" });
   } catch (err) {
     return createResponse({ error: err.toString() });
   }

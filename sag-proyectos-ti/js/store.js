@@ -21,22 +21,23 @@ const appStore = {
             localStorage.removeItem(STORAGE_KEY);
         }
 
-        // Cargar datos iniciales por defecto (catálogos, etc.)
-        this.loadInitialData();
+        // Cargar catálogos por defecto si no existen
+        if (!this.data.catalogos.sistemas) {
+            this.loadInitialData();
+        }
 
-        // Luego intentamos cargar de LocalStorage para recuperar la sesión anterior
+        // Recuperar sesión local
         const storedData = localStorage.getItem(STORAGE_KEY);
         if (storedData) {
             try {
                 const parsed = JSON.parse(storedData);
-                // Mezclamos con cuidado: priorizamos datos guardados pero mantenemos catálogos si faltan
                 this.data = { ...this.data, ...parsed };
             } catch (e) {
                 console.error("Error parseando LocalStorage", e);
             }
         }
         
-        // Finalmente sincronizamos con la nube (Google Sheets)
+        // Sincronizar con la nube
         await this.syncFromCloud();
         
         this.updateRiesgosBadge();
@@ -45,30 +46,30 @@ const appStore = {
     syncFromCloud: async function() {
         this.isSyncing = true;
         try {
-            // Sincronizar Proyectos
+            // Sincronizar Proyectos (Aceptamos [] como válido para poder borrar todo)
             const pRes = await fetch(`${GS_URL}?sheet=Proyectos`);
             const pData = await pRes.json();
-            if (pData && Array.isArray(pData) && pData.length > 0) {
+            if (pData && Array.isArray(pData)) {
                 this.data.proyectos = pData;
             }
 
             // Sincronizar Seguimientos
             const sRes = await fetch(`${GS_URL}?sheet=Seguimientos`);
             const sData = await sRes.json();
-            if (sData && Array.isArray(sData) && sData.length > 0) {
+            if (sData && Array.isArray(sData)) {
                 this.data.seguimientos = sData;
             }
 
             // Sincronizar Riesgos
             const rRes = await fetch(`${GS_URL}?sheet=Riesgos`);
             const rData = await rRes.json();
-            if (rData && Array.isArray(rData) && rData.length > 0) {
+            if (rData && Array.isArray(rData)) {
                 this.data.riesgos = rData;
             }
 
-            this.saveLocally(); // Actualizar caché local
+            this.saveLocally();
         } catch (e) {
-            console.warn("Sincronización con la nube vacía o fallida (usando locales):", e);
+            console.warn("Falla de sincronización cloud (usando locales):", e);
         } finally {
             this.isSyncing = false;
         }
@@ -183,13 +184,16 @@ const appStore = {
     },
 
     deleteProyecto: function(id) {
+        // Borramos en Nube
+        this.saveToCloud('Proyectos', {id: id}, 'delete');
+        
+        // Borramos localmente
         this.data.proyectos = this.data.proyectos.filter(p => p.id !== id);
-        // Cascading deletes
         this.data.seguimientos = this.data.seguimientos.filter(s => s.proyecto_id !== id);
         this.data.riesgos = this.data.riesgos.filter(r => r.proyecto_id !== id);
         this.data.hitos = this.data.hitos.filter(h => h.proyecto_id !== id);
         
-        this.save();
+        this.saveLocally();
     },
 
     // --- 3. Operaciones Seguimiento ---
@@ -265,12 +269,17 @@ const appStore = {
     },
 
     saveHito: function(hito) {
-        if (!hito.id) {
+        const isNew = !hito.id;
+        if (isNew) {
             hito.id = 'ht-' + crypto.randomUUID().slice(0, 8);
             this.data.hitos.push(hito);
+            this.saveToCloud('Hitos', hito, 'insert');
         } else {
             const idx = this.data.hitos.findIndex(h => h.id === hito.id);
-            if (idx !== -1) this.data.hitos[idx] = hito;
+            if (idx !== -1) {
+                this.data.hitos[idx] = hito;
+                this.saveToCloud('Hitos', hito, 'update');
+            }
         }
 
         // Recalcular % de avance basado en hitos completados vs planificados
@@ -295,12 +304,13 @@ const appStore = {
              }
         }
 
-        this.save();
+        this.saveLocally();
     },
     
     deleteHito: function(id) {
+        this.saveToCloud('Hitos', {id: id}, 'delete');
         this.data.hitos = this.data.hitos.filter(h => h.id !== id);
-        this.save();
+        this.saveLocally();
     },
 
     // --- 6. Analytics (Dashboard) ---
