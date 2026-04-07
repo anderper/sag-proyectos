@@ -142,28 +142,28 @@ function renderDashboard() {
     return `
         <div class="kpi-grid">
             <div class="kpi-card" style="--kpi-accent: var(--sag-green);">
-                <i class="ph ph-projector-screen-chart kpi-icon"></i>
+                <i class="material-icons-round kpi-icon">rocket_launch</i>
                 <div class="kpi-label">Proyectos Activos</div>
                 <div class="kpi-value">${stats.activos}</div>
                 <div class="kpi-sub">de ${stats.total} históricos</div>
             </div>
             
             <div class="kpi-card" style="--kpi-accent: var(--sem-rojo);">
-                <i class="ph ph-warning-circle kpi-icon" style="color:var(--sem-rojo);"></i>
+                <i class="material-icons-round kpi-icon" style="color:var(--sem-rojo);">report_problem</i>
                 <div class="kpi-label">Atrasados / En Riesgo</div>
                 <div class="kpi-value">${stats.atrasados + stats.semaforos.rojo}</div>
                 <div class="kpi-sub">Requieren atención urgente</div>
             </div>
 
             <div class="kpi-card" style="--kpi-accent: var(--est-en-curso);">
-                <i class="ph ph-trend-up kpi-icon"></i>
+                <i class="material-icons-round kpi-icon">trending_up</i>
                 <div class="kpi-label">Avance Promedio</div>
                 <div class="kpi-value">${stats.avancePromedio}%</div>
                 <div class="kpi-sub">De proyectos activos</div>
             </div>
 
             <div class="kpi-card" style="--kpi-accent: var(--sem-amarillo);">
-                <i class="ph ph-calendar-blank kpi-icon"></i>
+                <i class="material-icons-round kpi-icon">event_busy</i>
                 <div class="kpi-label">Próximos a Vencer</div>
                 <div class="kpi-value">${stats.proximos.length}</div>
                 <div class="kpi-sub">Vencen en &lt; 30 días</div>
@@ -234,27 +234,32 @@ function initDashboardCharts() {
     const stats = appStore.getDashboardStats();
     if (!stats) return;
 
-    // Colores base
-    const cVerde = '#16a34a';
-    const cAmarillo = '#d97706';
-    const cRojo = '#dc2626';
+    // Colores institucionales del CSS para Chart.js
+    const rootStyles = getComputedStyle(document.documentElement);
+    const chartPalette = [
+        rootStyles.getPropertyValue('--chart-1').trim(),
+        rootStyles.getPropertyValue('--chart-2').trim(),
+        rootStyles.getPropertyValue('--chart-3').trim(),
+        rootStyles.getPropertyValue('--chart-4').trim(),
+        rootStyles.getPropertyValue('--chart-5').trim(),
+        rootStyles.getPropertyValue('--chart-6').trim(),
+        rootStyles.getPropertyValue('--chart-7').trim(),
+        rootStyles.getPropertyValue('--chart-8').trim(),
+    ];
 
     // 1. Proveedores Externos
     const ctxProv = document.getElementById('chart-proveedores').getContext('2d');
     const provLabels = stats.graficoProveedores.map(g => g.name);
     const provData = stats.graficoProveedores.map(g => g.value);
     
-    // Paleta de colores variada
-    const palette = ['#1d4ed8', '#7c3aed', '#0e7490', '#d97706', '#16a34a', '#dc2626', '#4f46e5', '#9333ea'];
-
     APP.chartInstances['proveedores'] = new Chart(ctxProv, {
         type: 'doughnut',
         data: {
             labels: provLabels,
             datasets: [{
                 data: provData,
-                backgroundColor: palette.slice(0, provLabels.length),
-                borderWidth: 2,
+                backgroundColor: chartPalette,
+                borderWidth: 1,
                 borderColor: '#ffffff'
             }]
         },
@@ -284,11 +289,19 @@ function initDashboardCharts() {
             datasets: [{
                 label: 'Proyectos',
                 data: stats.graficoEstados.map(g => g.value),
-                backgroundColor: 'var(--sag-green-lt)',
+                backgroundColor: chartPalette,
                 borderRadius: 4
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            } 
+        }
     });
 
     // 3. Tipos Desarrollo
@@ -299,8 +312,8 @@ function initDashboardCharts() {
             labels: stats.graficoTipos.map(g => g.name),
             datasets: [{
                 data: stats.graficoTipos.map(g => g.value),
-                backgroundColor: ['#1d4ed8', '#7c3aed', '#0e7490'],
-                borderWidth: 2,
+                backgroundColor: [chartPalette[0], chartPalette[2], chartPalette[4]],
+                borderWidth: 1,
                 borderColor: '#ffffff'
             }]
         },
@@ -313,7 +326,7 @@ function renderProyectosList() {
     return `
         <div class="filters-bar" id="proyectos-filters">
             <div class="search-wrap">
-                <i class="ph ph-magnifying-glass search-icon"></i>
+                <i class="material-icons-round search-icon">search</i>
                 <input type="text" class="search-input" id="filtro-busqueda" placeholder="Buscar por nombre o sistema..." onkeyup="filtrarProyectos()">
             </div>
             
@@ -335,10 +348,10 @@ function renderProyectosList() {
             
             <div class="filter-actions">
                 <button class="btn btn-secondary btn-export" onclick="exportarProyectosExcel()">
-                    <i class="ph ph-file-xls"></i> Exportar
+                    <i class="material-icons-round">description</i> Exportar
                 </button>
                 <button class="btn btn-primary" onclick="abrirModalFormProyecto()">
-                    <i class="ph ph-plus"></i> Nuevo Proyecto
+                    <i class="material-icons-round">add</i> Nuevo Proyecto
                 </button>
             </div>
         </div>
@@ -385,7 +398,7 @@ function renderProyectosTableRows(proyectos) {
                 </div>
             </td>
             <td onclick="event.stopPropagation()">
-                <button class="btn btn-icon" onclick="abrirModalFormProyecto('${p.id}')" data-tooltip="Editar"><i class="ph ph-pencil-simple"></i></button>
+                <button class="btn btn-icon" onclick="abrirModalFormProyecto('${p.id}')" data-tooltip="Editar"><i class="material-icons-round">edit</i></button>
             </td>
         </tr>
     `).join('');
@@ -439,7 +452,7 @@ window.abrirModalFormProyecto = function(id = null) {
             <div class="modal modal-lg">
                 <div class="modal-header">
                     <h2>${id ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
-                    <button class="btn btn-icon" onclick="closeModal()"><i class="ph ph-x"></i></button>
+                    <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
                 </div>
                 <div class="modal-body">
                     <form id="form-proyecto" class="form-grid-3">
@@ -539,9 +552,9 @@ window.abrirModalFormProyecto = function(id = null) {
                     </form>
                 </div>
                 <div class="modal-footer">
-                    ${id ? `<button class="btn btn-danger mr-auto" onclick="confirmarEliminarProyecto('${id}')" style="margin-right: auto"><i class="ph ph-trash"></i> Eliminar</button>` : ''}
+                    ${id ? `<button class="btn btn-danger mr-auto" onclick="confirmarEliminarProyecto('${id}')" style="margin-right: auto"><i class="material-icons-round">delete</i> Eliminar</button>` : ''}
                     <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="guardarProyecto('${id || ''}')"><i class="ph ph-floppy-disk"></i> Guardar</button>
+                    <button class="btn btn-primary" onclick="guardarProyecto('${id || ''}')"><i class="material-icons-round">save</i> Guardar</button>
                 </div>
             </div>
         </div>
@@ -612,7 +625,7 @@ function renderProyectoDetalle(id) {
 
     const renderTabBtn = (id, label, icon, badge) => `
         <button class="tab-btn ${window.currentTabId === id ? 'active' : ''}" onclick="switchTabDetalle('${id}')">
-            <i class="ph ph-${icon}"></i> ${label}
+            <i class="material-icons-round">${icon}</i> ${label}
             ${badge > 0 ? `<span class="tab-badge ${id==='tab-riesgos'?'red':''}">${badge}</span>` : ''}
         </button>
     `;
@@ -620,7 +633,7 @@ function renderProyectoDetalle(id) {
     return `
         <div class="mb-16">
             <button class="btn btn-secondary btn-sm" onclick="navigateTo('#/proyectos')">
-                <i class="ph ph-arrow-left"></i> Volver a Proyectos
+                <i class="material-icons-round">arrow_back</i> Volver a Proyectos
             </button>
         </div>
 
@@ -633,7 +646,7 @@ function renderProyectoDetalle(id) {
                     </div>
                     <div class="flex gap-8">
                         <button class="btn btn-secondary" onclick="abrirModalFormProyecto('${p.id}')">
-                            <i class="ph ph-pencil-simple"></i> Editar
+                            <i class="material-icons-round">edit</i> Editar
                         </button>
                     </div>
                 </div>
@@ -681,9 +694,9 @@ function renderProyectoDetalle(id) {
         </div>
 
         <div class="tabs">
-            ${renderTabBtn('tab-seguimientos', 'Seguimientos Semanales', 'calendar-check', appStore.getSeguimientosByProyecto(p.id).length)}
-            ${renderTabBtn('tab-riesgos', 'Riesgos y Problemas', 'warning-octagon', appStore.getRiesgosByProyecto(p.id).length)}
-            ${renderTabBtn('tab-hitos', 'Hitos del Proyecto', 'flag-checkered', appStore.getHitosByProyecto(p.id).length)}
+            ${renderTabBtn('tab-seguimientos', 'Seguimientos Semanales', 'fact_check', appStore.getSeguimientosByProyecto(p.id).length)}
+            ${renderTabBtn('tab-riesgos', 'Riesgos y Problemas', 'warning', appStore.getRiesgosByProyecto(p.id).length)}
+            ${renderTabBtn('tab-hitos', 'Hitos del Proyecto', 'flag', appStore.getHitosByProyecto(p.id).length)}
         </div>
 
         <div id="tab-content" class="mt-16">
@@ -711,7 +724,7 @@ function renderTabSeguimientos(p) {
         <div class="flex justify-between items-center mb-16">
             <h3 style="font-size: 15px; font-weight:700;">Historial de Seguimientos</h3>
             <button class="btn btn-primary btn-sm" onclick="abrirModalFormSeguimiento('${p.id}')">
-                <i class="ph ph-plus"></i> Nuevo Seguimiento
+                <i class="material-icons-round">add</i> Nuevo Seguimiento
             </button>
         </div>
     `;
@@ -726,7 +739,7 @@ function renderTabSeguimientos(p) {
                     <div class="flex justify-between items-center mb-12">
                         <div class="flex items-center gap-12">
                             <div class="badge badge-en-curso font-bold">${s.semana}</div>
-                            <span class="text-secondary text-sm"><i class="ph ph-clock"></i> Reportado el ${formatDate(s.fecha_reporte)}</span>
+                            <span class="text-secondary text-sm"><i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">schedule</i> Reportado el ${formatDate(s.fecha_reporte)}</span>
                         </div>
                         <div class="text-sm font-bold">Avance Reportado: ${s.avance_acumulado}</div>
                     </div>
@@ -793,7 +806,7 @@ window.abrirModalFormSeguimiento = function(proyectoId, isGlobal = false) {
             <div class="modal modal-md">
                 <div class="modal-header">
                     <h2>Registrar Seguimiento Semanal</h2>
-                    <button class="btn btn-icon" onclick="closeModal()"><i class="ph ph-x"></i></button>
+                    <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
                 </div>
                 <div class="modal-body">
                     <form id="form-seguimiento">
@@ -882,7 +895,7 @@ function renderTabRiesgos(p) {
         <div class="flex justify-between items-center mb-16">
             <h3 style="font-size: 15px; font-weight:700;">Registro de Riesgos, Problemas y Bloqueos</h3>
             <button class="btn btn-primary btn-sm" onclick="abrirModalFormRiesgo('${p.id}')">
-                <i class="ph ph-plus"></i> Registrar Riesgo
+                <i class="material-icons-round">add</i> Registrar Riesgo
             </button>
         </div>
         
@@ -1053,7 +1066,7 @@ function renderTabHitos(p) {
         <div class="flex justify-between items-center mb-16">
             <h3 style="font-size: 15px; font-weight:700;">Plan de Hitos y Entregables</h3>
             <button class="btn btn-primary btn-sm" onclick="abrirModalFormHito('${p.id}')">
-                <i class="ph ph-plus"></i> Nuevo Hito
+                <i class="material-icons-round">add</i> Nuevo Hito
             </button>
         </div>
         
@@ -1081,13 +1094,13 @@ function renderTabHitos(p) {
                         <div class="flex justify-between">
                             <div class="hito-name ${isCompleted ? 'text-muted' : ''}" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${h.nombre} <span class="text-xs text-muted font-normal ml-8">Peso: ${h.peso_porcentual}%</span></div>
                             <div class="flex gap-4">
-                                <button class="btn btn-icon btn-sm" onclick="abrirModalFormHito('${p.id}', '${h.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                                <button class="btn btn-icon btn-sm" onclick="appStore.deleteHito('${h.id}'); renderView();" title="Eliminar"><i class="ph ph-trash" style="color:var(--sem-rojo);"></i></button>
+                                <button class="btn btn-icon btn-sm" onclick="abrirModalFormHito('${p.id}', '${h.id}')" title="Editar"><i class="material-icons-round">edit</i></button>
+                                <button class="btn btn-icon btn-sm" onclick="appStore.deleteHito('${h.id}'); renderView();" title="Eliminar"><i class="material-icons-round" style="color:var(--sem-rojo);">delete</i></button>
                             </div>
                         </div>
                         <div class="hito-dates">
-                            <i class="ph ph-calendar"></i> Planificado: ${formatDate(h.fecha_planificada)}
-                            ${h.fecha_real ? ` <span class="ml-8 text-primary font-bold"><i class="ph ph-check-circle"></i> Real: ${formatDate(h.fecha_real)}</span>` : ''}
+                            <i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">event</i> Planificado: ${formatDate(h.fecha_planificada)}
+                            ${h.fecha_real ? ` <span class="ml-8 text-primary font-bold"><i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">check_circle</i> Real: ${formatDate(h.fecha_real)}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1112,7 +1125,7 @@ window.abrirModalFormHito = function(proyectoId, hitoId = null) {
             <div class="modal modal-md">
                 <div class="modal-header">
                     <h2>${hitoId ? 'Editar Hito' : 'Nuevo Hito'}</h2>
-                    <button class="btn btn-icon" onclick="closeModal()"><i class="ph ph-x"></i></button>
+                    <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
                 </div>
                 <div class="modal-body">
                     <form id="form-hito" class="form-grid">
@@ -1179,7 +1192,7 @@ function renderSeguimientos() {
             <div class="card-header flex justify-between items-center" style="padding: 16px;">
                 <h3 style="font-size: 15px; font-weight: 700;">Historial Global de Seguimientos</h3>
                 <button class="btn btn-primary btn-sm" onclick="abrirModalFormSeguimiento(null, true)">
-                    <i class="ph ph-plus"></i> Registrar Seguimiento
+                    <i class="material-icons-round">add</i> Registrar Seguimiento
                 </button>
             </div>
             <div class="table-wrapper">
@@ -1213,7 +1226,7 @@ function renderRiesgos() {
             <div class="card-header flex justify-between items-center" style="padding: 16px;">
                  <h3 style="font-size: 15px; font-weight: 700;">Todos los Riesgos Abiertos (Vista Global)</h3>
                  <button class="btn btn-primary btn-sm" onclick="abrirModalFormRiesgo(null, null, true)">
-                    <i class="ph ph-plus"></i> Registrar Riesgo / Problema
+                    <i class="material-icons-round">add</i> Registrar Riesgo / Problema
                 </button>
             </div>
             <div class="table-wrapper">
@@ -1254,13 +1267,13 @@ function renderAdmin() {
                 
                 <div class="flex gap-16 mt-24">
                     <button class="btn btn-secondary btn-export" onclick="descargarExcelCatalogos()">
-                        <i class="ph ph-download-simple"></i> 1. Descargar Plantilla / Catálogos Actuales
+                        <i class="material-icons-round">download</i> 1. Descargar Plantilla / Catálogos Actuales
                     </button>
                     
                     <div>
                         <input type="file" id="file-catalogos" accept=".xlsx, .xls" style="display: none;" onchange="procesarExcelCatalogos(event)">
                         <button class="btn btn-primary" onclick="document.getElementById('file-catalogos').click()">
-                            <i class="ph ph-upload-simple"></i> 2. Subir Excel Actualizado
+                            <i class="material-icons-round">upload</i> 2. Subir Excel Actualizado
                         </button>
                     </div>
                 </div>

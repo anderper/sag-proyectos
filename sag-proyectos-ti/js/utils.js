@@ -169,11 +169,11 @@ const showToast = (message, type = 'success') => { // success, error, warning
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    let icon = 'ph-check-circle';
-    if(type === 'error') icon = 'ph-x-circle';
-    if(type === 'warning') icon = 'ph-warning';
+    let icon = 'check_circle';
+    if(type === 'error') icon = 'cancel';
+    if(type === 'warning') icon = 'report_problem';
 
-    toast.innerHTML = `<i class="ph ${icon}" style="font-size: 18px;"></i> ${message}`;
+    toast.innerHTML = `<i class="material-icons-round" style="font-size: 20px;">${icon}</i> ${message}`;
     
     container.appendChild(toast);
     
@@ -187,7 +187,7 @@ const showConfirmDialog = (title, message, onConfirm) => {
     const html = `
         <div class="modal-overlay">
             <div class="confirm-dialog">
-                <i class="ph ph-warning-circle confirm-icon" style="color: var(--sem-amarillo);"></i>
+                <i class="material-icons-round confirm-icon" style="color: var(--sem-amarillo); font-size: 48px;">help_outline</i>
                 <h3 class="confirm-title">${title}</h3>
                 <p class="confirm-msg">${message}</p>
                 <div class="confirm-actions">
