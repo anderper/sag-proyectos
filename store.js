@@ -79,6 +79,10 @@ const appStore = {
         this.updateRiesgosBadge();
     },
 
+    save: function() {
+        this.saveLocally();
+    },
+
     saveToCloud: async function(sheetName, data, action = 'insert') {
         try {
             await fetch(GS_URL, {
