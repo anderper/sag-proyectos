@@ -1345,7 +1345,7 @@ window.procesarExcelCatalogos = function(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
@@ -1380,7 +1380,9 @@ window.procesarExcelCatalogos = function(event) {
             }
 
             appStore.save();
-            showToast('Catálogos actualizados mediante Excel exitosamente.', 'success');
+            await appStore.saveCatalogosToCloud(); // Sincronizar configuración con Google Sheets
+
+            showToast('Catálogos actualizados y sincronizados con la nube exitosamente.', 'success');
             
             // Reset input file
             event.target.value = '';

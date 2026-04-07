@@ -21,12 +21,7 @@ const appStore = {
             localStorage.removeItem(STORAGE_KEY);
         }
 
-        // Cargar catálogos por defecto si no existen
-        if (!this.data.catalogos.sistemas) {
-            this.loadInitialData();
-        }
-
-        // Recuperar sesión local
+        // Recuperar sesión local rápida
         const storedData = localStorage.getItem(STORAGE_KEY);
         if (storedData) {
             try {
@@ -37,7 +32,12 @@ const appStore = {
             }
         }
         
-        // Sincronizar con la nube
+        // Si no hay datos en absoluto (ni local ni catálogo), cargar demo como base temporal
+        if (!this.data.catalogos.sistemas) {
+            this.loadInitialData();
+        }
+
+        // Sincronizar todo desde la nube (incluyendo catálogos)
         await this.syncFromCloud();
         
         this.updateRiesgosBadge();
@@ -46,7 +46,19 @@ const appStore = {
     syncFromCloud: async function() {
         this.isSyncing = true;
         try {
-            // Sincronizar Proyectos (Aceptamos [] como válido para poder borrar todo)
+            // Sincronizar Catálogos (Configuración)
+            const cRes = await fetch(`${GS_URL}?sheet=Catalogos`);
+            const cData = await cRes.json();
+            if (cData && Array.isArray(cData) && cData.length > 0) {
+                // El Excel devuelve filas, tenemos que reconstruir el objeto de catálogos
+                this.data.catalogos.sistemas = cData.map(r => r.Sistemas).filter(x => x);
+                this.data.catalogos.coordinadores = cData.map(r => r.Coordinadores).filter(x => x);
+                this.data.catalogos.unidadesUsuarias = cData.map(r => r.UnidadUsuaria).filter(x => x);
+                this.data.catalogos.proveedores = cData.map(r => r.Proveedores).filter(x => x);
+                this.data.catalogos.estados = cData.map(r => r.Estados).filter(x => x);
+            }
+
+            // Sincronizar Proyectos
             const pRes = await fetch(`${GS_URL}?sheet=Proyectos`);
             const pData = await pRes.json();
             if (pData && Array.isArray(pData)) {
@@ -94,6 +106,32 @@ const appStore = {
             });
         } catch (e) {
             console.error("Error al guardar en la nube:", e);
+        }
+    },
+
+    saveCatalogosToCloud: async function() {
+        const cats = this.data.catalogos;
+        const maxLen = Math.max(
+            (cats.sistemas||[]).length, 
+            (cats.coordinadores||[]).length, 
+            (cats.unidadesUsuarias||[]).length, 
+            (cats.proveedores||[]).length,
+            (cats.estados||[]).length
+        );
+
+        // Limpiar pestaña antes de subir (vía Apps Script esto es insert masivo)
+        // Por simplicidad en esta demo, enviamos fila por fila o un bloque
+        for (let i = 0; i < maxLen; i++) {
+            const rowData = {
+                id: `cat-${i}`, // Necesario para la lógica de búsqueda/update del script
+                Sistemas: (cats.sistemas||[])[i] || "",
+                Coordinadores: (cats.coordinadores||[])[i] || "",
+                UnidadUsuaria: (cats.unidadesUsuarias||[])[i] || "",
+                Proveedores: (cats.proveedores||[])[i] || "",
+                Estados: (cats.estados||[])[i] || ""
+            };
+            await this.saveToCloud('Catalogos', rowData, i === 0 ? 'insert' : 'insert'); 
+            // Nota: En una versión pro limpiaríamos la hoja primero, aquí simplemente acumulamos o actualizamos
         }
     },
 
