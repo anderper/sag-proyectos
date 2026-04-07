@@ -21,17 +21,22 @@ const appStore = {
             localStorage.removeItem(STORAGE_KEY);
         }
 
-        // Primero intentamos cargar de LocalStorage para rapidez inmediata
+        // Cargar datos iniciales por defecto (catálogos, etc.)
+        this.loadInitialData();
+
+        // Luego intentamos cargar de LocalStorage para recuperar la sesión anterior
         const storedData = localStorage.getItem(STORAGE_KEY);
         if (storedData) {
             try {
-                this.data = JSON.parse(storedData);
+                const parsed = JSON.parse(storedData);
+                // Mezclamos con cuidado: priorizamos datos guardados pero mantenemos catálogos si faltan
+                this.data = { ...this.data, ...parsed };
             } catch (e) {
                 console.error("Error parseando LocalStorage", e);
             }
         }
         
-        // Luego intentamos sincronizar con la nube (Google Sheets)
+        // Finalmente sincronizamos con la nube (Google Sheets)
         await this.syncFromCloud();
         
         this.updateRiesgosBadge();
@@ -43,21 +48,27 @@ const appStore = {
             // Sincronizar Proyectos
             const pRes = await fetch(`${GS_URL}?sheet=Proyectos`);
             const pData = await pRes.json();
-            if (pData && pData.length > 0) this.data.proyectos = pData;
+            if (pData && Array.isArray(pData) && pData.length > 0) {
+                this.data.proyectos = pData;
+            }
 
             // Sincronizar Seguimientos
             const sRes = await fetch(`${GS_URL}?sheet=Seguimientos`);
             const sData = await sRes.json();
-            if (sData && sData.length > 0) this.data.seguimientos = sData;
+            if (sData && Array.isArray(sData) && sData.length > 0) {
+                this.data.seguimientos = sData;
+            }
 
             // Sincronizar Riesgos
             const rRes = await fetch(`${GS_URL}?sheet=Riesgos`);
             const rData = await rRes.json();
-            if (rData && rData.length > 0) this.data.riesgos = rData;
+            if (rData && Array.isArray(rData) && rData.length > 0) {
+                this.data.riesgos = rData;
+            }
 
             this.saveLocally(); // Actualizar caché local
         } catch (e) {
-            console.warn("Falla de sincronización con la nube (usando datos locales):", e);
+            console.warn("Sincronización con la nube vacía o fallida (usando locales):", e);
         } finally {
             this.isSyncing = false;
         }
@@ -66,6 +77,10 @@ const appStore = {
     saveLocally: function() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
         this.updateRiesgosBadge();
+    },
+
+    save: function() {
+        this.saveLocally();
     },
 
     saveToCloud: async function(sheetName, data, action = 'insert') {

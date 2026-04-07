@@ -432,11 +432,7 @@ window.abrirModalFormProyecto = function(id = null) {
     }
 
     const { catalogos } = appStore.data;
-    const optsCat = cat => cat.map(c => `<option value="${c}" ${p[cat === 'sistemas' ? 'sistema': cat === 'divisiones' ? 'division_departamento' : cat === 'coordinadores' ? 'coordinador' : cat === 'unidadesUsuarias' ? 'unidad_usuaria' : cat === 'proveedores' ? 'proveedor' : cat === 'estados' ? 'estado' : cat === 'categorias' ? 'categoria' : cat === 'tiposDesarrollo' ? 'tipo_desarrollo' : ''] === c ? 'selected' : ''}>${c}</option>`).join('');
-    
-    // Opciones genéricas porque el campo podría no coincidir 1-1 en nombramientos (las map properties se arreglaron para ser exactas o no en la línea superior, lo hacemos más robustos abajo)
-
-    const cSelect = (arr, val) => arr.map(x => `<option value="${x}" ${val === x ? 'selected':''}>${x}</option>`).join('');
+    const cSelect = (arr, val) => (arr || []).map(x => x ? `<option value="${x}" ${val === x ? 'selected':''}>${x}</option>` : '').join('');
 
     const html = `
         <div class="modal-overlay">
