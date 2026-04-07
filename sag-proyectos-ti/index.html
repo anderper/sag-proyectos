@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAG - Gestión de Proyectos TI</title>
+    <link rel="stylesheet" href="css/main.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) para exportar a Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Phosphor Icons para íconos -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+
+    <div class="app-shell">
+        <!-- Sidebar Toggle (Mobile) -->
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+            <i class="ph ph-list"></i>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-image">
+                    <svg viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; border-radius: 4px; display: block;">
+                        <rect x="0" y="0" width="121" height="120" fill="#1b64aa"/>
+                        <rect x="120" y="0" width="180" height="120" fill="#e24041"/>
+                        <text x="22" y="95" font-family="Arial, sans-serif" font-size="100" font-weight="bold" fill="#ffffff">S</text>
+                        <text x="108" y="95" font-family="Arial, sans-serif" font-size="100" font-weight="bold" fill="#ffffff">A</text>
+                        <text x="205" y="95" font-family="Arial, sans-serif" font-size="100" font-weight="bold" fill="#ffffff">G</text>
+                    </svg>
+                </div>
+                <!-- <h2>SAG Chile</h2> -->
+                <span>Gestión Proyectos TI</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">General</div>
+                <a href="#/dashboard" class="nav-item active" data-route="/dashboard">
+                    <i class="ph ph-squares-four nav-icon"></i> Dashboard
+                </a>
+                
+                <div class="nav-section-label mt-16">Gestión</div>
+                <a href="#/proyectos" class="nav-item" data-route="/proyectos">
+                    <i class="ph ph-folder nav-icon"></i> Proyectos
+                </a>
+                <a href="#/seguimiento" class="nav-item" data-route="/seguimiento">
+                    <i class="ph ph-calendar-check nav-icon"></i> Seguimiento
+                </a>
+                <a href="#/riesgos" class="nav-item" data-route="/riesgos">
+                    <i class="ph ph-warning-octagon nav-icon"></i> Riesgos y Problemas
+                    <span class="nav-badge" id="badge-riesgos" style="display: none;">0</span>
+                </a>
+                
+                <div class="nav-section-label mt-16">Configuración</div>
+                <a href="#/admin" class="nav-item" data-route="/admin">
+                    <i class="ph ph-gear nav-icon"></i> Administración
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar">AD</div>
+                    <div class="user-info">
+                        <div class="user-name">Administrador</div>
+                        <div class="user-role">Jefatura TI / SAG</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-title" id="topbar-title">Dashboard Ejecutivo</div>
+                <div class="topbar-actions">
+                    <button class="btn btn-icon" title="Sincronizar Datos" onclick="appStore.initData(true); renderView(); showToast('Datos restaurados a valores por defecto', 'success')">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="page-body" id="app-content">
+                <!-- Se inyecta dinámicamente -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Contenedor para Modales Dinámicos -->
+    <div id="modal-container"></div>
+    
+    <!-- Contenedor para Toasts -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
