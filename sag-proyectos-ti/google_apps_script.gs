@@ -72,12 +72,34 @@ function doPost(e) {
       const contentType = params.data.contentType;
       const base64Data = params.data.base64;
       const fileName = params.data.fileName;
+      const projectId = params.data.projectId; // Obtenemos el ID del proyecto
       
       const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType, fileName);
       const file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const fileUrl = file.getUrl();
+
+      // Si tenemos un projectId, actualizamos la hoja de Proyectos inmediatamente
+      if (projectId) {
+        const pSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proyectos");
+        if (pSheet) {
+          const pData = pSheet.getDataRange().getValues();
+          const pHeaders = pData[0];
+          const pIdIdx = pHeaders.indexOf("id");
+          const pGanttIdx = pHeaders.indexOf("carta_gantt_url");
+          
+          if (pIdIdx !== -1 && pGanttIdx !== -1) {
+            for (let i = 1; i < pData.length; i++) {
+              if (pData[i][pIdIdx] == projectId) {
+                pSheet.getRange(i + 1, pGanttIdx + 1).setValue(fileUrl);
+                break;
+              }
+            }
+          }
+        }
+      }
       
-      return createResponse({ success: true, url: file.getUrl(), fileId: file.getId() });
+      return createResponse({ success: true, url: fileUrl, fileId: file.getId() });
     }
     
     if (action === "update" || action === "delete") {

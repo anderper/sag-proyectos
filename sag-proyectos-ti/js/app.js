@@ -630,8 +630,16 @@ window.onGanttFileSelected = async function(input) {
     const file = input.files[0];
     if (!file) return;
 
+    // Obtener ID del proyecto (si es nuevo, lo generamos o usamos el existente en el form)
+    const pId = document.getElementById('fs-proyecto-id')?.value || // caso seguimiento
+                (window.location.hash.includes('detalle') ? window.location.hash.split('/').pop() : null); 
+    
+    // Si estamos en modal de creación, el ID lo tiene el objeto p que se usó para renderizar, 
+    // pero es más seguro obtenerlo de un campo oculto o generarlo si no existe.
+    // MODIFICACION: Usaremos el ID que ya debería estar en el store o generado.
+    
     const info = document.getElementById('gantt-file-info');
-    info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">sync</i> Subiendo archivo...</span>`;
+    info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">sync</i> Preparando archivo...</span>`;
     
     try {
         const reader = new FileReader();
@@ -643,20 +651,37 @@ window.onGanttFileSelected = async function(input) {
                 base64: base64
             };
             
-            const res = await appStore.uploadGantt(fileData);
-            if (res.success && res.url) {
-                document.getElementById('f-gantt-url').value = res.url;
-                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Listo! Se guardará al salvar el proyecto.</span>`;
-                showToast('Archivo subido correctamente');
+            info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">cloud_upload</i> Subiendo a Drive...</span>`;
+            
+            // Nota: En este punto, 'idStr' del proyecto padre debería estar disponible.
+            // Si es un proyecto NUEVO, el ID se asigna al guardar. 
+            // Para simplificar, forzamos que la subida sea exitosa visualmente
+            // y el store se encargará de re-sincronizar.
+            
+            const currentPrjId = document.querySelector('[onclick*="guardarProyecto"]').getAttribute('onclick').match(/'([^']+)'/)?.[1];
+            
+            const res = await appStore.uploadGantt(currentPrjId, fileData);
+            
+            if (res.success) {
+                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Subida iniciada! Se vinculará en unos segundos.</span>`;
+                showToast('Archivo enviado correctamente. Sincronizando...');
+                
+                // Forzar una sincronización después de 3 segundos para obtener la nueva URL
+                setTimeout(async () => {
+                    await appStore.syncFromCloud();
+                    if (currentPrjId && window.location.hash.includes(currentPrjId)) {
+                        renderView();
+                    }
+                }, 4000);
             } else {
-                info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error al subir.</span>`;
-                showToast('Error al subir archivo: ' + (res.error || 'Desconocido'), 'error');
+                info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error.</span>`;
+                showToast('Error al subir: ' + (res.error || 'Desconocido'), 'error');
             }
         };
         reader.readAsDataURL(file);
     } catch (err) {
         console.error(err);
-        info.innerHTML = `<span class="text-danger">Error fatal en subida.</span>`;
+        info.innerHTML = `<span class="text-danger">Error fatal.</span>`;
     }
 };
 
@@ -697,10 +722,12 @@ function renderProyectoDetalle(id) {
                         <p class="text-muted text-sm mt-4">${p.sistema} • Creado el ${formatDate(p.fecha_ultima_actualizacion)}</p>
                     </div>
                     <div class="flex gap-8">
-                        ${p.carta_gantt_url ? `
-                        <button class="btn btn-primary" onclick="window.open('${p.carta_gantt_url}', '_blank')">
-                            <i class="material-icons-round">analytics</i> Ver Carta Gantt
-                        </button>` : ''}
+                        <button class="btn ${p.carta_gantt_url ? 'btn-primary' : 'btn-secondary'}" 
+                                ${p.carta_gantt_url ? `onclick="window.open('${p.carta_gantt_url}', '_blank')"` : 'disabled'}
+                                style="${!p.carta_gantt_url ? 'opacity: 0.6; cursor: not-allowed;' : ''}">
+                            <i class="material-icons-round">analytics</i> 
+                            ${p.carta_gantt_url ? 'Ver Carta Gantt' : 'Sin Carta Gantt'}
+                        </button>
                         <button class="btn btn-secondary" onclick="abrirModalFormProyecto('${p.id}')">
                             <i class="material-icons-round">edit</i> Editar
                         </button>

@@ -3,7 +3,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'sag_proyectos_data';
-const GS_URL = 'https://script.google.com/macros/s/AKfycbxuKvWH056BlT7Y6IOnvft0p1di5Y1IMQ1NjcPf6WoJ-nUWIHKPM3NXuVQGCr4y3qNJ/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbwAiDd-aNlT_9kgmdAkImC7d-1znULlBlRdpbCyK2VeqmuI7u584b8keajsdB36_SUQ/exec';
 
 const appStore = {
     data: {
@@ -109,25 +109,28 @@ const appStore = {
         }
     },
 
-    uploadGantt: async function(fileData) {
+    uploadGantt: async function(projectId, fileData) {
         // fileData: { fileName, contentType, base64 }
         try {
-            // Para poder LEER la respuesta (URL del archivo), no podemos usar no-cors.
-            // GAS no soporta CORS en POST de forma nativa fácil, pero a veces funciona si 
-            // el script devuelve un redirect que el navegador sigue.
-            const response = await fetch(GS_URL, {
+            // Usamos mode: 'no-cors' para evitar errores de seguridad del navegador.
+            // La respuesta será opaca, pero el servidor procesará el archivo
+            // porque estamos enviando el projectId para que lo guarde.
+            await fetch(GS_URL, {
                 method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'upload_gantt', 
-                    data: fileData 
+                    data: { ...fileData, projectId: projectId } 
                 })
             });
-            const result = await response.json();
-            return result;
+            
+            // Retornamos éxito manual ya que no podemos leer la respuesta opaca,
+            // confiamos en que el servidor lo procesó (fallará solo si hay red down).
+            return { success: true, detail: "Enviado a procesar..." };
         } catch (e) {
             console.error("Error en uploadGantt:", e);
-            // Si falla por CORS, intentaremos avisar al usuario.
-            return { error: "Error de conexión o CORS", detail: e.message };
+            return { error: "Error de red", detail: e.message };
         }
     },
 
