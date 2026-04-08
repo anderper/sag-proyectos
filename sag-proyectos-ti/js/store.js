@@ -110,27 +110,21 @@ const appStore = {
     },
 
     uploadGantt: async function(projectId, fileData) {
-        // fileData: { fileName, contentType, base64 }
         try {
-            // Usamos mode: 'no-cors' para evitar errores de seguridad del navegador.
-            // La respuesta será opaca, pero el servidor procesará el archivo
-            // porque estamos enviando el projectId para que lo guarde.
-            await fetch(GS_URL, {
+            // Al omitir 'Content-Type: application/json', el navegador envía 'text/plain' por defecto.
+            // Esto EVITA el preflight request (OPTIONS) que causa el error de CORS en Apps Script.
+            const response = await fetch(GS_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'upload_gantt', 
                     data: { ...fileData, projectId: projectId } 
                 })
             });
-            
-            // Retornamos éxito manual ya que no podemos leer la respuesta opaca,
-            // confiamos en que el servidor lo procesó (fallará solo si hay red down).
-            return { success: true, detail: "Enviado a procesar..." };
+            const result = await response.json();
+            return result;
         } catch (e) {
             console.error("Error en uploadGantt:", e);
-            return { error: "Error de red", detail: e.message };
+            return { error: "Error de red o conexión", detail: e.message };
         }
     },
 

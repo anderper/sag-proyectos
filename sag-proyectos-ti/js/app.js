@@ -658,25 +658,19 @@ window.onGanttFileSelected = async function(input) {
             
             const res = await appStore.uploadGantt(pId, fileData);
             
-            if (res.success) {
-                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Subida iniciada! Se vinculará en unos segundos.</span>`;
-                showToast('Archivo enviado correctamente. Sincronizando datos...');
+            if (res.success && res.url) {
+                // Actualizar campo oculto para que al dar Guardar se conserve
+                document.getElementById('f-gantt-url').value = res.url;
                 
-                // Forzar una sincronización después de un intervalo para obtener la nueva URL de GAS
-                setTimeout(async () => {
-                    await appStore.syncFromCloud();
-                    if (APP.currentRoute.includes(pId)) {
-                        renderView();
-                    } else if (document.getElementById('form-proyecto')) {
-                        // Si el modal sigue abierto, actualizar el enlace visualmente
-                        const updatedP = appStore.getProyecto(pId);
-                        if (updatedP && updatedP.carta_gantt_url) {
-                            document.getElementById('f-gantt-url').value = updatedP.carta_gantt_url;
-                            const fileInfo = document.getElementById('gantt-file-info');
-                            fileInfo.innerHTML = `<a href="${updatedP.carta_gantt_url}" target="_blank" class="flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">link</i> Ver archivo actualizado</a>`;
-                        }
-                    }
-                }, 5000);
+                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Terminado!</span> <a href="${res.url}" target="_blank" class="flex items-center gap-4 mt-4" style="color:var(--sag-green);"><i class="material-icons-round" style="font-size:14px;">link</i> Ver archivo adjunto</a>`;
+                
+                showToast('Archivo enviado correctamente.');
+                
+                // Forzar actualización en el store si el proyecto ya existía
+                const updatedP = appStore.getProyecto(pId);
+                if (updatedP) {
+                    updatedP.carta_gantt_url = res.url;
+                }
             } else {
                 info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error.</span>`;
                 showToast('Error al subir: ' + (res.error || 'Desconocido'), 'error');
@@ -685,7 +679,7 @@ window.onGanttFileSelected = async function(input) {
         reader.readAsDataURL(file);
     } catch (err) {
         console.error(err);
-        info.innerHTML = `<span class="text-danger">Error fatal.</span>`;
+        info.innerHTML = `<span class="text-danger">Error fatal. ${err.message}</span>`;
     }
 };
 
