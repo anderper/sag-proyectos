@@ -65,6 +65,21 @@ const getCurrentWeek = () => {
     return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 };
 
+const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    try {
+        // Si ya es un objeto Date o un string ISO completo
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '';
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    } catch (e) {
+        return '';
+    }
+};
+
 // --- 2. Semáforo y Reglas de Negocio ---
 const calcularSemaforo = (proyecto, riesgosProyecto) => {
     // Si está finalizado o cancelado, el semáforo no aplica (o verde por defecto)

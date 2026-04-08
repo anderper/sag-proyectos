@@ -436,6 +436,7 @@ window.exportarProyectosExcel = function() {
 // --- Formulario de Proyecto ---
 window.abrirModalFormProyecto = function(id = null) {
     let p = {
+        id: 'prj-' + Date.now(), // ID temporal para nuevos proyectos
         nombre: '', sistema: '', descripcion: '', categoria: '', division_departamento: 'División TI',
         unidad_usuaria: '', responsable_usuario: '', coordinador: '', tipo_proyecto: 'Nuevo',
         tipo_desarrollo: 'Interno', proveedor: '', equipo_proveedor: '', fecha_inicio_planificada: '', fecha_fin_planificada: '',
@@ -517,11 +518,11 @@ window.abrirModalFormProyecto = function(id = null) {
 
                         <div class="form-group">
                             <label class="form-label">Fecha Inicio Planificada</label>
-                            <input type="date" class="form-control" id="f-inicio-plan" value="${p.fecha_inicio_planificada}">
+                            <input type="date" class="form-control" id="f-inicio-plan" value="${formatDateForInput(p.fecha_inicio_planificada)}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Fecha Fin Planificada <span class="required">*</span></label>
-                            <input type="date" class="form-control" id="f-fin-plan" required value="${p.fecha_fin_planificada}">
+                            <input type="date" class="form-control" id="f-fin-plan" required value="${formatDateForInput(p.fecha_fin_planificada)}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Estado Actual</label>
@@ -564,6 +565,7 @@ window.abrirModalFormProyecto = function(id = null) {
                                     ${p.carta_gantt_url ? `<a href="${p.carta_gantt_url}" target="_blank" class="flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">link</i> Ver archivo actual</a>` : 'No hay archivo adjunto'}
                                 </div>
                                 <input type="hidden" id="f-gantt-url" value="${p.carta_gantt_url || ''}">
+                                <input type="hidden" id="f-proyecto-actual-id" value="${id || p.id || ''}">
                             </div>
                         </div>
                     </form>
@@ -630,14 +632,15 @@ window.onGanttFileSelected = async function(input) {
     const file = input.files[0];
     if (!file) return;
 
-    // Obtener ID del proyecto (si es nuevo, lo generamos o usamos el existente en el form)
-    const pId = document.getElementById('fs-proyecto-id')?.value || // caso seguimiento
+    // Obtener ID del proyecto con prioridad: campo oculto -> URL -> parametro
+    const pId = document.getElementById('f-proyecto-actual-id')?.value || 
                 (window.location.hash.includes('detalle') ? window.location.hash.split('/').pop() : null); 
     
-    // Si estamos en modal de creación, el ID lo tiene el objeto p que se usó para renderizar, 
-    // pero es más seguro obtenerlo de un campo oculto o generarlo si no existe.
-    // MODIFICACION: Usaremos el ID que ya debería estar en el store o generado.
-    
+    if (!pId) {
+        showToast('Debes asignar un nombre al proyecto antes de subir la carta Gantt', 'warning');
+        return;
+    }
+
     const info = document.getElementById('gantt-file-info');
     info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">sync</i> Preparando archivo...</span>`;
     
@@ -653,26 +656,27 @@ window.onGanttFileSelected = async function(input) {
             
             info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">cloud_upload</i> Subiendo a Drive...</span>`;
             
-            // Nota: En este punto, 'idStr' del proyecto padre debería estar disponible.
-            // Si es un proyecto NUEVO, el ID se asigna al guardar. 
-            // Para simplificar, forzamos que la subida sea exitosa visualmente
-            // y el store se encargará de re-sincronizar.
-            
-            const currentPrjId = document.querySelector('[onclick*="guardarProyecto"]').getAttribute('onclick').match(/'([^']+)'/)?.[1];
-            
-            const res = await appStore.uploadGantt(currentPrjId, fileData);
+            const res = await appStore.uploadGantt(pId, fileData);
             
             if (res.success) {
                 info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Subida iniciada! Se vinculará en unos segundos.</span>`;
-                showToast('Archivo enviado correctamente. Sincronizando...');
+                showToast('Archivo enviado correctamente. Sincronizando datos...');
                 
-                // Forzar una sincronización después de 3 segundos para obtener la nueva URL
+                // Forzar una sincronización después de un intervalo para obtener la nueva URL de GAS
                 setTimeout(async () => {
                     await appStore.syncFromCloud();
-                    if (currentPrjId && window.location.hash.includes(currentPrjId)) {
+                    if (APP.currentRoute.includes(pId)) {
                         renderView();
+                    } else if (document.getElementById('form-proyecto')) {
+                        // Si el modal sigue abierto, actualizar el enlace visualmente
+                        const updatedP = appStore.getProyecto(pId);
+                        if (updatedP && updatedP.carta_gantt_url) {
+                            document.getElementById('f-gantt-url').value = updatedP.carta_gantt_url;
+                            const fileInfo = document.getElementById('gantt-file-info');
+                            fileInfo.innerHTML = `<a href="${updatedP.carta_gantt_url}" target="_blank" class="flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">link</i> Ver archivo actualizado</a>`;
+                        }
                     }
-                }, 4000);
+                }, 5000);
             } else {
                 info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error.</span>`;
                 showToast('Error al subir: ' + (res.error || 'Desconocido'), 'error');
