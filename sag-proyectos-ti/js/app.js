@@ -398,7 +398,10 @@ function renderProyectosTableRows(proyectos) {
                 </div>
             </td>
             <td onclick="event.stopPropagation()">
-                <button class="btn btn-icon" onclick="abrirModalFormProyecto('${p.id}')" data-tooltip="Editar"><i class="material-icons-round">edit</i></button>
+                <div class="flex gap-4">
+                    <button class="btn btn-icon" onclick="abrirModalFormProyecto('${p.id}')" data-tooltip="Editar"><i class="material-icons-round">edit</i></button>
+                    ${p.carta_gantt_url ? `<button class="btn btn-icon text-primary" onclick="window.open('${p.carta_gantt_url}', '_blank')" data-tooltip="Ver Carta Gantt"><i class="material-icons-round">analytics</i></button>` : ''}
+                </div>
             </td>
         </tr>
     `).join('');
@@ -549,6 +552,20 @@ window.abrirModalFormProyecto = function(id = null) {
                                 ${cSelect(["Alta", "Media", "Baja"], p.criticidad)}
                             </select>
                         </div>
+
+                        <div class="form-group form-full mt-8">
+                            <label class="form-label">Carta Gantt (Excel)</label>
+                            <div class="flex items-center gap-12">
+                                <input type="file" id="f-gantt-file" style="display: none;" onchange="onGanttFileSelected(this)">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('f-gantt-file').click()">
+                                    <i class="material-icons-round">attach_file</i> ${p.carta_gantt_url ? 'Cambiar Archivo' : 'Subir Archivo'}
+                                </button>
+                                <div id="gantt-file-info" class="text-xs text-secondary">
+                                    ${p.carta_gantt_url ? `<a href="${p.carta_gantt_url}" target="_blank" class="flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">link</i> Ver archivo actual</a>` : 'No hay archivo adjunto'}
+                                </div>
+                                <input type="hidden" id="f-gantt-url" value="${p.carta_gantt_url || ''}">
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -597,6 +614,7 @@ window.guardarProyecto = function(idStr) {
     p.categoria = document.getElementById('f-categoria').value;
     p.prioridad = document.getElementById('f-prioridad').value;
     p.criticidad = document.getElementById('f-criticidad').value;
+    p.carta_gantt_url = document.getElementById('f-gantt-url').value;
 
     appStore.saveProyecto(p);
     closeModal();
@@ -605,6 +623,40 @@ window.guardarProyecto = function(idStr) {
         renderView();
     } else {
         filtrarProyectos();
+    }
+};
+
+window.onGanttFileSelected = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const info = document.getElementById('gantt-file-info');
+    info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">sync</i> Subiendo archivo...</span>`;
+    
+    try {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64 = e.target.result.split(',')[1];
+            const fileData = {
+                fileName: file.name,
+                contentType: file.type,
+                base64: base64
+            };
+            
+            const res = await appStore.uploadGantt(fileData);
+            if (res.success && res.url) {
+                document.getElementById('f-gantt-url').value = res.url;
+                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Listo! Se guardará al salvar el proyecto.</span>`;
+                showToast('Archivo subido correctamente');
+            } else {
+                info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error al subir.</span>`;
+                showToast('Error al subir archivo: ' + (res.error || 'Desconocido'), 'error');
+            }
+        };
+        reader.readAsDataURL(file);
+    } catch (err) {
+        console.error(err);
+        info.innerHTML = `<span class="text-danger">Error fatal en subida.</span>`;
     }
 };
 
@@ -645,6 +697,10 @@ function renderProyectoDetalle(id) {
                         <p class="text-muted text-sm mt-4">${p.sistema} • Creado el ${formatDate(p.fecha_ultima_actualizacion)}</p>
                     </div>
                     <div class="flex gap-8">
+                        ${p.carta_gantt_url ? `
+                        <button class="btn btn-primary" onclick="window.open('${p.carta_gantt_url}', '_blank')">
+                            <i class="material-icons-round">analytics</i> Ver Carta Gantt
+                        </button>` : ''}
                         <button class="btn btn-secondary" onclick="abrirModalFormProyecto('${p.id}')">
                             <i class="material-icons-round">edit</i> Editar
                         </button>

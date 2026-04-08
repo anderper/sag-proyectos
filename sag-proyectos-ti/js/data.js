@@ -39,7 +39,8 @@ const initialData = {
             criticidad: "Alta",
             porcentaje_avance: 45,
             semaforo: "Amarillo",
-            fecha_ultima_actualizacion: "2026-04-01"
+            fecha_ultima_actualizacion: "2026-04-01",
+            carta_gantt_url: ""
         },
         {
             id: "prj-002",
@@ -65,7 +66,8 @@ const initialData = {
             criticidad: "Media",
             porcentaje_avance: 70,
             semaforo: "Verde",
-            fecha_ultima_actualizacion: "2026-04-05"
+            fecha_ultima_actualizacion: "2026-04-05",
+            carta_gantt_url: ""
         },
         {
             id: "prj-003",
@@ -91,7 +93,8 @@ const initialData = {
             criticidad: "Media",
             porcentaje_avance: 15,
             semaforo: "Rojo",
-            fecha_ultima_actualizacion: "2026-03-25"
+            fecha_ultima_actualizacion: "2026-03-25",
+            carta_gantt_url: ""
         },
         {
             id: "prj-004",
@@ -117,7 +120,8 @@ const initialData = {
             criticidad: "Alta",
             porcentaje_avance: 0,
             semaforo: "Verde",
-            fecha_ultima_actualizacion: "2026-04-06"
+            fecha_ultima_actualizacion: "2026-04-06",
+            carta_gantt_url: ""
         },
         {
             id: "prj-005",
@@ -143,7 +147,8 @@ const initialData = {
             criticidad: "Media",
             porcentaje_avance: 100,
             semaforo: "Verde",
-            fecha_ultima_actualizacion: "2026-03-20"
+            fecha_ultima_actualizacion: "2026-03-20",
+            carta_gantt_url: ""
         }
     ],
 

@@ -3,7 +3,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'sag_proyectos_data';
-const GS_URL = 'https://script.google.com/macros/s/AKfycbybyuDlf3ue6QaPtziJcUL_v0qevoA-OwQU1yRt_KqKpW2_7jBuWgeB4eE4N7um_PEF/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbxuKvWH056BlT7Y6IOnvft0p1di5Y1IMQ1NjcPf6WoJ-nUWIHKPM3NXuVQGCr4y3qNJ/exec';
 
 const appStore = {
     data: {
@@ -106,6 +106,28 @@ const appStore = {
             });
         } catch (e) {
             console.error("Error al guardar en la nube:", e);
+        }
+    },
+
+    uploadGantt: async function(fileData) {
+        // fileData: { fileName, contentType, base64 }
+        try {
+            // Para poder LEER la respuesta (URL del archivo), no podemos usar no-cors.
+            // GAS no soporta CORS en POST de forma nativa fácil, pero a veces funciona si 
+            // el script devuelve un redirect que el navegador sigue.
+            const response = await fetch(GS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: 'upload_gantt', 
+                    data: fileData 
+                })
+            });
+            const result = await response.json();
+            return result;
+        } catch (e) {
+            console.error("Error en uploadGantt:", e);
+            // Si falla por CORS, intentaremos avisar al usuario.
+            return { error: "Error de conexión o CORS", detail: e.message };
         }
     },
 
