@@ -1685,12 +1685,36 @@ window.procesarExcelCatalogos = function(event) {
 
 // --- Hitos Globales ---
 function renderHitosGlobales() {
-    // 1. Obtener todos los hitos y enriquecer con datos del proyecto
-    let hitosGlobales = appStore.data.hitos.map(h => {
+    return `
+        <div class="filters-bar" id="hitos-globales-filters">
+            <div class="search-wrap">
+                <i class="material-icons-round search-icon">search</i>
+                <input type="text" class="search-input" id="filtro-hitos-busqueda" placeholder="Buscar por proyecto o hito..." onkeyup="filtrarHitosGlobales()">
+            </div>
+            
+            <div class="filter-group">
+                <select class="filter-control" id="filtro-hitos-urgencia" onchange="filtrarHitosGlobales()">
+                    <option value="Todos">Todas las Urgencias</option>
+                    <option value="1">Vencidos (Rojo)</option>
+                    <option value="2">Próximos (Amarillo)</option>
+                    <option value="3">Normal / Completados</option>
+                </select>
+            </div>
+        </div>
+        <div id="hitos-globales-lista">
+            ${renderHitosGlobalesLista()}
+        </div>
+    `;
+}
+
+function renderHitosGlobalesLista(filtroTexto = '', filtroUrgencia = 'Todos') {
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+
+    // 1. Obtener y enriquecer datos
+    let hitos = appStore.data.hitos.map(h => {
         const prj = appStore.getProyecto(h.proyecto_id);
-        const hoy = new Date();
-        hoy.setHours(0,0,0,0);
-        let urgencia = 3; // 1: Vencido, 2: Proximo, 3: Normal/Completado
+        let urgencia = 3;
         let diffDias = 999;
         
         if (h.estado !== 'Completado' && h.fecha_fin) {
@@ -1698,9 +1722,8 @@ function renderHitosGlobales() {
             if (parts.length === 3) {
                 const fFin = new Date(parts[0], parts[1] - 1, parts[2]);
                 diffDias = Math.floor((fFin - hoy) / (1000 * 60 * 60 * 24));
-                
-                if (diffDias < 0) urgencia = 1; // Vencido
-                else if (diffDias <= 30) urgencia = 2; // Proximo
+                if (diffDias < 0) urgencia = 1;
+                else if (diffDias <= 30) urgencia = 2;
             }
         }
         
@@ -1715,34 +1738,50 @@ function renderHitosGlobales() {
         };
     });
 
-    // 2. Ordenar: Primero Vencidos (mas negativos primero), luego Proximos (por fecha asc), luego Resto
-    hitosGlobales.sort((a, b) => {
-        if (a.urgencia !== b.urgencia) {
-            return a.urgencia - b.urgencia; // 1 (Vencidos), luego 2 (Proximos), luego 3 (Resto)
-        }
-        // Si tienen la misma urgencia, ordenar por dias (ascendente temporal)
+    // 2. Aplicar Filtros
+    if (filtroTexto) {
+        const term = filtroTexto.toLowerCase();
+        hitos = hitos.filter(h => 
+            h.proyectoNombre.toLowerCase().includes(term) || 
+            h.nombre.toLowerCase().includes(term) || 
+            h.sistema.toLowerCase().includes(term)
+        );
+    }
+    if (filtroUrgencia !== 'Todos') {
+        hitos = hitos.filter(h => h.urgencia == filtroUrgencia);
+    }
+
+    // 3. Ordenar (Prioridad Urgencia, luego cercanía de fecha)
+    hitos.sort((a, b) => {
+        if (a.urgencia !== b.urgencia) return a.urgencia - b.urgencia;
         return a.diffDias - b.diffDias;
     });
 
-    // 3. Renderizar filas
-    const filasHitos = hitosGlobales.map(h => {
-        let urgenciaLabel = 'Normal';
-        let urgenciaClass = 'badge-mejora'; // color neutro
+    if (hitos.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="material-icons-round empty-icon">search_off</i>
+                <h3>No se encontraron hitos</h3>
+                <p>Prueba con otros términos de búsqueda o filtros.</p>
+            </div>
+        `;
+    }
+
+    const filas = hitos.map(h => {
+        let urgenciaLabel = h.estado === 'Completado' ? 'Completado' : 'Normal';
+        let urgenciaClass = h.estado === 'Completado' ? 'badge-completado' : 'badge-mejora';
         let rowClass = '';
         
         if (h.urgencia === 1) {
-            urgenciaLabel = 'Vencido (' + Math.abs(h.diffDias) + ' días)';
+            urgenciaLabel = 'Vencido (' + Math.abs(h.diffDias) + ' d)';
             urgenciaClass = 'badge-rojo';
             rowClass = 'row-vencido';
         } else if (h.urgencia === 2) {
             urgenciaLabel = 'Próximo a Vencer';
             urgenciaClass = 'badge-proximo-vencer';
             rowClass = 'row-proximo';
-        } else if (h.estado === 'Completado') {
-            urgenciaLabel = 'Completado';
-            urgenciaClass = 'badge-completado';
         }
-        
+
         return `
             <tr class="${rowClass}">
                 <td>
@@ -1750,12 +1789,12 @@ function renderHitosGlobales() {
                     <div class="text-xs text-muted">${h.sistema}</div>
                 </td>
                 <td>
-                    <div class="font-bold text-sm" style="color:var(--text-primary); cursor:pointer;" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">${h.hito}</div>
+                    <div class="font-bold text-sm" style="color:var(--text-primary); cursor:pointer;" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">${h.nombre}</div>
                 </td>
                 <td>${h.coordinador}</td>
-                <td>${formatDate(h.fecha_inicio)}</td>
+                <td class="text-xs">${formatDate(h.fecha_inicio)}</td>
                 <td>
-                    <span class="flex items-center gap-4 text-sm font-bold" style="${h.esAtrasado || h.diffDias <= 7 ? 'color:var(--sem-rojo)' : ''}">
+                    <span class="flex items-center gap-4 text-sm font-bold" style="${h.esAtrasado ? 'color:var(--sem-rojo)' : ''}">
                         <i class="material-icons-round" style="font-size:16px;">flag</i>
                         ${formatDate(h.fecha_fin)}
                     </span>
@@ -1767,23 +1806,13 @@ function renderHitosGlobales() {
                     </span>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-secondary" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">
-                        <i class="material-icons-round" style="font-size: 14px;">visibility</i> Ver
+                    <button class="btn btn-sm btn-secondary btn-icon" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">
+                        <i class="material-icons-round">visibility</i>
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
-
-    if (hitosGlobales.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="material-icons-round empty-icon">assignment_turned_in</i>
-                <h3>No hay hitos registrados</h3>
-                <p>Aún no se han creado hitos en ninguno de los proyectos.</p>
-            </div>
-        `;
-    }
 
     return `
         <div class="card">
@@ -1791,22 +1820,29 @@ function renderHitosGlobales() {
                 <table>
                     <thead>
                         <tr>
-                            <th>Proyecto</th>
-                            <th>Hito</th>
+                            <th>Proyecto / Sistema</th>
+                            <th>Nombre del Hito</th>
                             <th>Coordinador</th>
                             <th>Inicio</th>
-                            <th>Fin</th>
-                            <th>Estado / Urgencia</th>
-                            <th>Acción</th>
+                            <th>Planificado Fin</th>
+                            <th>Urgencia / Estado</th>
+                            <th></th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${filasHitos}
-                    </tbody>
+                    <tbody>${filas}</tbody>
                 </table>
             </div>
         </div>
     `;
 }
+
+window.filtrarHitosGlobales = function() {
+    const texto = document.getElementById('filtro-hitos-busqueda').value;
+    const urgencia = document.getElementById('filtro-hitos-urgencia').value;
+    const container = document.getElementById('hitos-globales-lista');
+    if (container) {
+        container.innerHTML = renderHitosGlobalesLista(texto, urgencia);
+    }
+};
 
 // === Fin del sistema ===
