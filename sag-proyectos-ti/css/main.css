@@ -321,18 +321,18 @@ h1, h2, h3, h4, .topbar-title {
 }
 .kpi-card-alerta {
   animation: kpi-pulse 2s ease-in-out infinite;
-  border-color: var(--sem-amarillo);
+  border-color: var(--kpi-accent);
 }
 .kpi-card-alerta::before {
-  background: var(--sem-amarillo) !important;
+  /* Utiliza el accent definido localmente en lugar de forzar amarillo */
 }
 .kpi-icon-alerta {
-  color: var(--sem-amarillo);
+  /* Hereda el color que le corresponde a la tarjeta */
   animation: icon-pulse 1.5s ease-in-out infinite;
 }
 @keyframes kpi-pulse {
   0%, 100% { box-shadow: var(--shadow-sm); }
-  50% { box-shadow: 0 0 0 2px var(--sem-amarillo), var(--shadow-md); }
+  50% { box-shadow: 0 0 0 2px var(--kpi-accent), var(--shadow-md); }
 }
 @keyframes icon-pulse {
   0%, 100% { transform: scale(1); }
