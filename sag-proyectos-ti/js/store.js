@@ -83,7 +83,18 @@ const appStore = {
             const hRes = await fetch(`${GS_URL}?sheet=Hitos`);
             const hData = await hRes.json();
             if (hData && Array.isArray(hData)) {
-                this.data.hitos = hData;
+                // Mapear campos antiguos a nuevos si es necesario
+                this.data.hitos = hData.map(h => {
+                    if (h.fecha_planificada && !h.fecha_inicio) {
+                        h.fecha_inicio = h.fecha_planificada;
+                        delete h.fecha_planificada;
+                    }
+                    if (h.fecha_real && !h.fecha_fin) {
+                        h.fecha_fin = h.fecha_real;
+                        delete h.fecha_real;
+                    }
+                    return h;
+                });
             }
 
             this.saveLocally();
@@ -178,7 +189,8 @@ const appStore = {
         
         const riesgosAltos = this.data.riesgos.filter(r => r.estado === 'Abierto' && r.impacto === 'Alto');
         const hitosAlerta = this.getHitosProximosAVencer();
-        const total = riesgosAltos.length + hitosAlerta.length;
+        const hitosAtrasados = this.getHitosAtrasados();
+        const total = riesgosAltos.length + hitosAlerta.length + hitosAtrasados.length;
 
         if (total > 0) {
             bdg.textContent = total;
@@ -190,6 +202,35 @@ const appStore = {
 
     // Hitos con fecha_fin dentro de los próximos 30 días (excluyendo los ya Completados)
     getHitosProximosAVencer: function() {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const en30 = new Date(hoy);
+        en30.setDate(hoy.getDate() + 30);
+
+        return this.data.hitos.filter(h => {
+            if (h.estado === 'Completado') return false;
+            if (!h.fecha_fin) return false;
+            const parts = h.fecha_fin.split('-');
+            if (parts.length !== 3) return false;
+            const fechaFin = new Date(parts[0], parts[1] - 1, parts[2]);
+            return fechaFin >= hoy && fechaFin <= en30;
+        });
+    },
+
+    // Hitos atrasados (fecha_fin < hoy y no completados)
+    getHitosAtrasados: function() {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        return this.data.hitos.filter(h => {
+            if (h.estado === 'Completado') return false;
+            if (!h.fecha_fin) return false;
+            const parts = h.fecha_fin.split('-');
+            if (parts.length !== 3) return false;
+            const fechaFin = new Date(parts[0], parts[1] - 1, parts[2]);
+            return fechaFin < hoy;
+        });
+    },
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const en30 = new Date(hoy);
@@ -436,6 +477,7 @@ const appStore = {
             .reduce((acc, p) => { acc[p.proveedor] = (acc[p.proveedor]||0)+1; return acc; }, {});
 
         const hitosProximos = this.getHitosProximosAVencer();
+        const hitosAtrasados = this.getHitosAtrasados();
 
         return {
             total,
@@ -446,6 +488,7 @@ const appStore = {
             avancePromedio,
             proximos,
             hitosProximos,
+            hitosAtrasados,
             graficoTipos: Object.keys(tiposObj).map(k => ({name: k, value: tiposObj[k]})),
             graficoEstados: Object.keys(estadosObj).map(k => ({name: k, value: estadosObj[k]})),
             graficoProveedores: Object.keys(proveedoresObj).map(k => ({name: k, value: proveedoresObj[k]}))

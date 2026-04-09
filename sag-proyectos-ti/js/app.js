@@ -140,6 +140,8 @@ function renderDashboard() {
     if (!stats) return `<div class="empty-state">No hay datos</div>`;
 
     const totalProximosVencer = stats.proximos.length + (stats.hitosProximos ? stats.hitosProximos.length : 0);
+    const totalAtrasados = (stats.hitosAtrasados ? stats.hitosAtrasados.length : 0) + stats.atrasados;
+    const tieneAlertas = totalProximosVencer > 0 || totalAtrasados > 0;
 
     return `
         <div class="kpi-grid">
@@ -164,14 +166,14 @@ function renderDashboard() {
                 <div class="kpi-sub">De proyectos activos</div>
             </div>
 
-            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
-                <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">alarm</i>
-                <div class="kpi-label">Próximos a Vencer</div>
-                <div class="kpi-value">${totalProximosVencer}</div>
+            <div class="kpi-card${tieneAlertas ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
+                <i class="material-icons-round kpi-icon${tieneAlertas ? ' kpi-icon-alerta' : ''}">${totalAtrasados > 0 ? 'warning' : 'event_busy'}</i>
+                <div class="kpi-label">${totalAtrasados > 0 ? 'Atrasados / Próximos' : 'Próximos a Vencer'}</div>
+                <div class="kpi-value">${totalProximosVencer + totalAtrasados}</div>
                 <div class="kpi-sub">
-                    ${stats.proximos.length} proyecto${stats.proximos.length !== 1 ? 's' : ''}
-                    · ${stats.hitosProximos ? stats.hitosProximos.length : 0} hito${(stats.hitosProximos && stats.hitosProximos.length !== 1) ? 's' : ''}
-                    en &lt; 30 días
+                    ${totalAtrasados > 0 ? `<span style="color:var(--sem-rojo); font-weight:600;">${totalAtrasados} atraso${totalAtrasados !== 1 ? 'dos' : 'o'}</span>` : ''}
+                    ${totalAtrasados > 0 && totalProximosVencer > 0 ? ' · ' : ''}
+                    ${totalProximosVencer > 0 ? `${totalProximosVencer} en &lt; 30 días` : ''}
                 </div>
             </div>
         </div>
@@ -297,24 +299,35 @@ function initDashboardCharts() {
     });
 }
 
-// --- Dashboard: Panel de Hitos Próximos a Vencer ---
+// --- Dashboard: Panel de Hitos y Riesgos (Próximos y Atrasados) ---
 function renderDashboardHitosAlerta(stats) {
     const hitosProximos = stats.hitosProximos || [];
-    if (hitosProximos.length === 0) return '';
+    const hitosAtrasados = stats.hitosAtrasados || [];
+    
+    if (hitosProximos.length === 0 && hitosAtrasados.length === 0) return '';
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    const filas = hitosProximos.map(h => {
+    // Función helper para cada fila
+    const renderFilaHito = (h, esAtrasado) => {
         const proyecto = appStore.getProyecto(h.proyecto_id);
+        if (!h.fecha_fin) return '';
+        
         const parts = h.fecha_fin.split('-');
         const fechaFinDate = new Date(parts[0], parts[1] - 1, parts[2]);
-        const diffDias = Math.ceil((fechaFinDate - hoy) / (1000 * 60 * 60 * 24));
+        const diffDias = esAtrasado 
+            ? Math.ceil((hoy - fechaFinDate) / (1000 * 60 * 60 * 24))
+            : Math.ceil((fechaFinDate - hoy) / (1000 * 60 * 60 * 24));
         
         let urgenciaClass = '';
         let urgenciaLabel = '';
-        if (diffDias <= 7) {
+        
+        if (esAtrasado) {
             urgenciaClass = 'badge-rojo';
+            urgencyLabel = `Atrasado ${diffDias === 1 ? '1 día' : diffDias + ' días'}`;
+        } else if (diffDias <= 7) {
+            urgencyClass = 'badge-rojo';
             urgenciaLabel = `${diffDias === 0 ? 'Vence hoy' : diffDias === 1 ? 'Mañana' : `En ${diffDias} días`}`;
         } else if (diffDias <= 15) {
             urgenciaClass = 'badge-amarillo';
@@ -338,14 +351,14 @@ function renderDashboardHitosAlerta(stats) {
                     </span>
                 </td>
                 <td>
-                    <span class="flex items-center gap-4 text-sm font-bold" style="${diffDias <= 7 ? 'color:var(--sem-rojo)' : 'color:var(--sem-amarillo)'}">
+                    <span class="flex items-center gap-4 text-sm font-bold" style="${esAtrasado || diffDias <= 7 ? 'color:var(--sem-rojo)' : 'color:var(--sem-amarillo)'}">
                         <i class="material-icons-round" style="font-size:16px;">flag</i>
                         ${formatDate(h.fecha_fin)}
                     </span>
                 </td>
                 <td>
                     <span class="badge ${urgenciaClass}">
-                        <i class="material-icons-round" style="font-size:13px; vertical-align:middle;">alarm</i>
+                        <i class="material-icons-round" style="font-size:13px; vertical-align:middle;">${esAtrasado ? 'warning' : 'alarm'}</i>
                         ${urgenciaLabel}
                     </span>
                 </td>
@@ -356,18 +369,27 @@ function renderDashboardHitosAlerta(stats) {
                 </td>
             </tr>
         `;
-    }).join('');
+    };
+
+    // Combinar atrasados primero, luego proximos
+    const filasAtrasados = hitosAtrasados.map(h => renderFilaHito(h, true)).join('');
+    const filasProximos = hitosProximos.map(h => renderFilaHito(h, false)).join('');
+    const total = hitosAtrasados.length + hitosProximos.length;
 
     return `
         <div class="card mb-24">
-            <div class="card-header" style="border-left: 4px solid var(--sem-amarillo);">
+            <div class="card-header" style="border-left: 4px solid ${hitosAtrasados.length > 0 ? 'var(--sem-rojo)' : 'var(--sem-amarillo)'};">
                 <div class="flex items-center gap-8">
-                    <i class="material-icons-round" style="color: var(--sem-amarillo); font-size: 22px;">alarm</i>
-                    <h3>Hitos Próximos a Vencer
-                        <span class="badge badge-amarillo ml-8" style="font-size:12px; vertical-align:middle;">${hitosProximos.length}</span>
+                    <i class="material-icons-round" style="color: ${hitosAtrasados.length > 0 ? 'var(--sem-rojo)' : 'var(--sem-amarillo)'}; font-size: 22px;">${hitosAtrasados.length > 0 ? 'warning' : 'alarm'}</i>
+                    <h3>Hitos con Alerta
+                        <span class="badge ${hitosAtrasados.length > 0 ? 'badge-rojo' : 'badge-amarillo'} ml-8" style="font-size:12px; vertical-align:middle;">${total}</span>
                     </h3>
                 </div>
-                <p class="text-sm text-muted mt-4">Hitos con fecha fin dentro de los próximos 30 días que aún no están completados.</p>
+                <p class="text-sm text-muted mt-4">
+                    ${hitosAtrasados.length > 0 ? `<span style="color:var(--sem-rojo); font-weight:600;">${hitosAtrasados.length} hito${hitosAtrasados.length !== 1 ? 's' : ''} atrasado${hitosAtrasados.length !== 1 ? 's' : ''}</span>` : ''}
+                    ${hitosAtrasados.length > 0 && hitosProximos.length > 0 ? ' · ' : ''}
+                    ${hitosProximos.length > 0 ? `${hitosProximos.length} hito${hitosProximos.length !== 1 ? 's' : ''} proximo${hitosProximos.length !== 1 ? 's' : ''} a vencer` : ''}
+                </p>
             </div>
             <div class="table-wrapper">
                 <table>
@@ -382,7 +404,8 @@ function renderDashboardHitosAlerta(stats) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${filas}
+                        ${filasAtrasados}
+                        ${filasProximos}
                     </tbody>
                 </table>
             </div>
