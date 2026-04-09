@@ -139,6 +139,8 @@ function renderDashboard() {
     
     if (!stats) return `<div class="empty-state">No hay datos</div>`;
 
+    const totalProximosVencer = stats.proximos.length + (stats.hitosProximos ? stats.hitosProximos.length : 0);
+
     return `
         <div class="kpi-grid">
             <div class="kpi-card" style="--kpi-accent: var(--sag-green);">
@@ -162,13 +164,19 @@ function renderDashboard() {
                 <div class="kpi-sub">De proyectos activos</div>
             </div>
 
-            <div class="kpi-card" style="--kpi-accent: var(--sem-amarillo);">
-                <i class="material-icons-round kpi-icon">event_busy</i>
+            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
+                <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">alarm</i>
                 <div class="kpi-label">Próximos a Vencer</div>
-                <div class="kpi-value">${stats.proximos.length}</div>
-                <div class="kpi-sub">Vencen en &lt; 30 días</div>
+                <div class="kpi-value">${totalProximosVencer}</div>
+                <div class="kpi-sub">
+                    ${stats.proximos.length} proyecto${stats.proximos.length !== 1 ? 's' : ''}
+                    · ${stats.hitosProximos ? stats.hitosProximos.length : 0} hito${(stats.hitosProximos && stats.hitosProximos.length !== 1) ? 's' : ''}
+                    en &lt; 30 días
+                </div>
             </div>
         </div>
+
+        ${renderDashboardHitosAlerta(stats)}
 
         <div class="charts-grid">
             <div class="chart-container">
@@ -195,40 +203,6 @@ function renderDashboard() {
                 </div>
             </div>
         </div>
-
-        <div class="card mb-24">
-            <div class="card-header">
-                <h3>Proyectos que requieren atención</h3>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Proyecto</th>
-                            <th>Coordinador</th>
-                            <th>Semáforo</th>
-                            <th>Avance</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${appStore.data.proyectos.filter(p => p.semaforo === 'Rojo' || Object.keys(appStore.getRiesgosByProyecto(p.id)).length > 0).slice(0, 5).map(p => `
-                        <tr>
-                            <td class="td-bold">${p.nombre}</td>
-                            <td>${p.coordinador}</td>
-                            <td>${renderBadgeSemaforo(p.semaforo)}</td>
-                            <td>${renderProgressBar(p.porcentaje_avance, p.semaforo)}</td>
-                            <td>
-                                <button class="btn btn-sm btn-secondary" onclick="navigateTo('#/proyectos/detalle/${p.id}')">Ver Detalle</button>
-                            </td>
-                        </tr>
-                        `).join('') || `<tr><td colspan="5" class="text-center" style="padding: 20px; color: var(--text-muted)">No hay proyectos en rojo.</td></tr>`}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        ${renderDashboardHitosAlerta(stats)}
     `;
 }
 

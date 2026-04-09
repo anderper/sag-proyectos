@@ -316,6 +316,25 @@ h1, h2, h3, h4, .topbar-title {
   height: 3px;
   background: var(--kpi-accent, var(--sag-green));
 }
+.kpi-card-alerta {
+  animation: kpi-pulse 2s ease-in-out infinite;
+  border-color: var(--sem-amarillo);
+}
+.kpi-card-alerta::before {
+  background: var(--sem-amarillo) !important;
+}
+.kpi-icon-alerta {
+  color: var(--sem-amarillo);
+  animation: icon-pulse 1.5s ease-in-out infinite;
+}
+@keyframes kpi-pulse {
+  0%, 100% { box-shadow: var(--shadow-sm); }
+  50% { box-shadow: 0 0 0 2px var(--sem-amarillo), var(--shadow-md); }
+}
+@keyframes icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
 .kpi-label {
   font-size: 11.5px;
   font-weight: 600;
