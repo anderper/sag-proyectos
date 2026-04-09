@@ -176,8 +176,6 @@ function renderDashboard() {
             </div>
         </div>
 
-        ${renderDashboardHitosAlerta(stats)}
-
         <div class="charts-grid">
             <div class="chart-container">
                 <h3>Empresas Externas</h3>
