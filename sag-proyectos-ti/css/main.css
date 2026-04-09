@@ -16,7 +16,7 @@
   --sag-teal:      #00838F; /* Teal Institucional */
   --sag-teal-lt:   #00ACC1;
 
-  --sag-naranja:   #FF6F00; /* Naranja para Riesgos/Problemas */
+  --sag-naranja:   #E65100; /* Naranja rojizo más distintivo para Riesgos */
   --sag-naranja-bg: #FFF3E0;
   
   --sidebar-bg:    #1A3D42; /* Petrol Oscuro */
@@ -46,7 +46,7 @@
   /* Semáforo (UI Kit Colors) */
   --sem-verde:     #69B34C;
   --sem-verde-bg:  #E8F5E9;
-  --sem-amarillo:  #FFA000;
+  --sem-amarillo:  #FFD54F; /* Amarillo dorado más distintivo */
   --sem-amarillo-bg:#FFF8E1;
   --sem-rojo:      #D32F2F;
   --sem-rojo-bg:   #FFEBEE;
