@@ -690,7 +690,9 @@ window.guardarProyecto = function(idStr) {
         }
     }
 
-    let p = idStr ? appStore.getProyecto(idStr) : {};
+    let p = idStr ? appStore.getProyecto(idStr) : { 
+        id: document.getElementById('f-proyecto-actual-id').value 
+    };
     
     p.nombre = document.getElementById('f-nombre').value;
     p.descripcion = document.getElementById('f-descripcion').value;

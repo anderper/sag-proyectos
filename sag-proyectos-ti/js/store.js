@@ -231,20 +231,6 @@ const appStore = {
             return fechaFin < hoy;
         });
     },
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const en30 = new Date(hoy);
-        en30.setDate(hoy.getDate() + 30);
-
-        return this.data.hitos.filter(h => {
-            if (h.estado === 'Completado') return false;
-            if (!h.fecha_fin) return false;
-            const parts = h.fecha_fin.split('-');
-            if (parts.length !== 3) return false;
-            const fechaFin = new Date(parts[0], parts[1] - 1, parts[2]);
-            return fechaFin >= hoy && fechaFin <= en30;
-        });
-    },
 
     // --- 2. Operaciones Proyectos ---
     getProyectos: function(filters = {}) {
@@ -276,7 +262,7 @@ const appStore = {
     },
 
     saveProyecto: function(proyecto) {
-        const isNew = !proyecto.id;
+        const isNew = !this.getProyecto(proyecto.id);
         
         // Recalcular semáforo si está salvando
         const riesgosAsociados = this.getRiesgosByProyecto(proyecto.id);
@@ -287,7 +273,8 @@ const appStore = {
         } else {
             // Un proyecto nuevo arranca verde generalmente
             proyecto.semaforo = 'Verde';
-            proyecto.id = 'prj-' + crypto.randomUUID().slice(0, 8);
+            // Mantenemos el ID que ya venía asignado desde app.js para preservar subidas previas de Gantt (prj-...)
+            if(!proyecto.id) proyecto.id = 'prj-' + crypto.randomUUID().slice(0, 8); // Fallback
             proyecto.fecha_ultima_actualizacion = getCurrentDate();
             proyecto.porcentaje_avance = 0;
             if(!proyecto.estado) proyecto.estado = 'Planificado';
