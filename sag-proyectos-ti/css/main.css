@@ -15,6 +15,9 @@
   
   --sag-teal:      #00838F; /* Teal Institucional */
   --sag-teal-lt:   #00ACC1;
+
+  --sag-naranja:   #FF6F00; /* Naranja para Riesgos/Problemas */
+  --sag-naranja-bg: #FFF3E0;
   
   --sidebar-bg:    #1A3D42; /* Petrol Oscuro */
   --sidebar-hover: #265157;

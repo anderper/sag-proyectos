@@ -187,10 +187,10 @@ const appStore = {
         const bdg = document.getElementById('badge-riesgos');
         if(!bdg) return;
         
-        const riesgosAltos = this.data.riesgos.filter(r => r.estado === 'Abierto' && r.impacto === 'Alto');
+        const riesgosAbiertos = this.data.riesgos.filter(r => r.estado === 'Abierto' || r.estado === 'En gestión');
         const hitosAlerta = this.getHitosProximosAVencer();
         const hitosAtrasados = this.getHitosAtrasados();
-        const total = riesgosAltos.length + hitosAlerta.length + hitosAtrasados.length;
+        const total = riesgosAbiertos.length + hitosAlerta.length + hitosAtrasados.length;
 
         if (total > 0) {
             bdg.textContent = total;
@@ -466,6 +466,8 @@ const appStore = {
         const hitosProximos = this.getHitosProximosAVencer();
         const hitosAtrasados = this.getHitosAtrasados();
 
+        const riesgosAbiertos = this.data.riesgos.filter(r => r.estado === 'Abierto' || r.estado === 'En gestión');
+
         return {
             total,
             activos: activos.length,
@@ -476,6 +478,7 @@ const appStore = {
             proximos,
             hitosProximos,
             hitosAtrasados,
+            riesgosAbiertos,
             graficoTipos: Object.keys(tiposObj).map(k => ({name: k, value: tiposObj[k]})),
             graficoEstados: Object.keys(estadosObj).map(k => ({name: k, value: estadosObj[k]})),
             graficoProveedores: Object.keys(proveedoresObj).map(k => ({name: k, value: proveedoresObj[k]}))

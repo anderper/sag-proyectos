@@ -139,8 +139,8 @@ function renderDashboard() {
     
     if (!stats) return `<div class="empty-state">No hay datos</div>`;
 
-    const totalProximosVencer = stats.proximos.length + (stats.hitosProximos ? stats.hitosProximos.length : 0);
-    const totalAtrasados = (stats.hitosAtrasados ? stats.hitosAtrasados.length : 0) + stats.atrasados;
+    const totalProximosVencer = stats.hitosProximos ? stats.hitosProximos.length : 0;
+    const totalAtrasados = stats.hitosAtrasados ? stats.hitosAtrasados.length : 0;
     const tieneAlertas = totalProximosVencer > 0 || totalAtrasados > 0;
 
     return `
@@ -152,11 +152,13 @@ function renderDashboard() {
                 <div class="kpi-sub">de ${stats.total} históricos</div>
             </div>
             
-            <div class="kpi-card" style="--kpi-accent: var(--sem-rojo);">
+            <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo);">
                 <i class="material-icons-round kpi-icon" style="color:var(--sem-rojo);">report_problem</i>
-                <div class="kpi-label">Atrasados / En Riesgo</div>
-                <div class="kpi-value">${stats.atrasados + stats.semaforos.rojo}</div>
-                <div class="kpi-sub">Requieren atención urgente</div>
+                <div class="kpi-label">Riesgo / Atrasados</div>
+                <div class="kpi-value">${totalAtrasados}</div>
+                <div class="kpi-sub">
+                    ${totalAtrasados === 1 ? '1 hito vencido' : totalAtrasados + ' hitos vencidos'}
+                </div>
             </div>
 
             <div class="kpi-card" style="--kpi-accent: var(--est-en-curso);">
@@ -166,14 +168,21 @@ function renderDashboard() {
                 <div class="kpi-sub">De proyectos activos</div>
             </div>
 
-            <div class="kpi-card${tieneAlertas ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
-                <i class="material-icons-round kpi-icon${tieneAlertas ? ' kpi-icon-alerta' : ''}">${totalAtrasados > 0 ? 'warning' : 'event_busy'}</i>
-                <div class="kpi-label">${totalAtrasados > 0 ? 'Atrasados / Próximos' : 'Próximos a Vencer'}</div>
-                <div class="kpi-value">${totalProximosVencer + totalAtrasados}</div>
+            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
+                <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">event_busy</i>
+                <div class="kpi-label">Próximos Hitos a Vencer</div>
+                <div class="kpi-value">${totalProximosVencer}</div>
                 <div class="kpi-sub">
-                    ${totalAtrasados > 0 ? `<span style="color:var(--sem-rojo); font-weight:600;">${totalAtrasados} atraso${totalAtrasados !== 1 ? 'dos' : 'o'}</span>` : ''}
-                    ${totalAtrasados > 0 && totalProximosVencer > 0 ? ' · ' : ''}
-                    ${totalProximosVencer > 0 ? `${totalProximosVencer} en &lt; 30 días` : ''}
+                    ${totalProximosVencer === 1 ? '1 hito' : totalProximosVencer + ' hitos'} en &lt; 30 días
+                </div>
+            </div>
+
+            <div class="kpi-card${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sag-naranja);">
+                <i class="material-icons-round kpi-icon" style="color: var(--sag-naranja);">warning</i>
+                <div class="kpi-label">Problemas</div>
+                <div class="kpi-value">${stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0}</div>
+                <div class="kpi-sub">
+                    ${(stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0) === 1 ? '1 riesgo/problema' : (stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0) + ' riesgos/problemas'} abiertos
                 </div>
             </div>
         </div>
