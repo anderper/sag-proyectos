@@ -436,6 +436,9 @@ h1, h2, h3, h4, .topbar-title {
 .badge-rojo       { background: var(--sem-rojo-bg); color: #b91c1c; }
 .badge-proximo-vencer { background: #fef9c3; color: #854d0e; border: 1px solid var(--sem-amarillo); }
 
+.row-vencido { background-color: #fef2f2 !important; }
+.row-proximo { background-color: #fefce8 !important; }
+
 .semaforo-dot {
   width: 10px; height: 10px;
   border-radius: 50%;

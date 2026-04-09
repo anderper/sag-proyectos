@@ -108,6 +108,11 @@ function renderView() {
         title.textContent = 'Administración de Catálogos';
         html = renderAdmin();
     }
+    else if (APP.currentRoute === '/hitos') {
+        title.textContent = 'Hitos Globales';
+        html = renderHitosGlobales();
+    }
+
     else {
         html = `
             <div class="empty-state">
@@ -163,13 +168,13 @@ function renderDashboard() {
                 <div class="kpi-value">${stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0}</div>
             </div>
 
-            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
+            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo); cursor: pointer;" onclick="navigateTo('#/hitos')">
                 <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">event_busy</i>
                 <div class="kpi-label">Hitos Próximos a Vencer</div>
                 <div class="kpi-value">${totalProximosVencer}</div>
             </div>
 
-            <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo);">
+            <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo); cursor: pointer;" onclick="navigateTo('#/hitos')">
                 <i class="material-icons-round kpi-icon${totalAtrasados > 0 ? ' kpi-icon-alerta' : ''}">report_problem</i>
                 <div class="kpi-label">Hitos Vencidos</div>
                 <div class="kpi-value">${totalAtrasados}</div>
@@ -1677,5 +1682,131 @@ window.procesarExcelCatalogos = function(event) {
     
     reader.readAsArrayBuffer(file);
 };
+
+// --- Hitos Globales ---
+function renderHitosGlobales() {
+    // 1. Obtener todos los hitos y enriquecer con datos del proyecto
+    let hitosGlobales = appStore.data.hitos.map(h => {
+        const prj = appStore.getProyecto(h.proyecto_id);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        let urgencia = 3; // 1: Vencido, 2: Proximo, 3: Normal/Completado
+        let diffDias = 999;
+        
+        if (h.estado !== 'Completado' && h.fecha_fin) {
+            const parts = h.fecha_fin.split('-');
+            if (parts.length === 3) {
+                const fFin = new Date(parts[0], parts[1] - 1, parts[2]);
+                diffDias = Math.floor((fFin - hoy) / (1000 * 60 * 60 * 24));
+                
+                if (diffDias < 0) urgencia = 1; // Vencido
+                else if (diffDias <= 30) urgencia = 2; // Proximo
+            }
+        }
+        
+        return {
+            ...h,
+            proyectoNombre: prj ? prj.nombre : 'Proyecto Desconocido',
+            sistema: prj ? prj.sistema : '-',
+            coordinador: prj ? prj.coordinador : '-',
+            urgencia,
+            diffDias,
+            esAtrasado: urgencia === 1
+        };
+    });
+
+    // 2. Ordenar: Primero Vencidos (mas negativos primero), luego Proximos (por fecha asc), luego Resto
+    hitosGlobales.sort((a, b) => {
+        if (a.urgencia !== b.urgencia) {
+            return a.urgencia - b.urgencia; // 1 (Vencidos), luego 2 (Proximos), luego 3 (Resto)
+        }
+        // Si tienen la misma urgencia, ordenar por dias (ascendente temporal)
+        return a.diffDias - b.diffDias;
+    });
+
+    // 3. Renderizar filas
+    const filasHitos = hitosGlobales.map(h => {
+        let urgenciaLabel = 'Normal';
+        let urgenciaClass = 'badge-mejora'; // color neutro
+        let rowClass = '';
+        
+        if (h.urgencia === 1) {
+            urgenciaLabel = 'Vencido (' + Math.abs(h.diffDias) + ' días)';
+            urgenciaClass = 'badge-rojo';
+            rowClass = 'row-vencido';
+        } else if (h.urgencia === 2) {
+            urgenciaLabel = 'Próximo a Vencer';
+            urgenciaClass = 'badge-proximo-vencer';
+            rowClass = 'row-proximo';
+        } else if (h.estado === 'Completado') {
+            urgenciaLabel = 'Completado';
+            urgenciaClass = 'badge-completado';
+        }
+        
+        return `
+            <tr class="${rowClass}">
+                <td>
+                    <div class="font-bold cursor-pointer" style="color:var(--sag-teal);" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}')">${h.proyectoNombre}</div>
+                    <div class="text-xs text-muted">${h.sistema}</div>
+                </td>
+                <td>
+                    <div class="font-bold text-sm" style="color:var(--text-primary); cursor:pointer;" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">${h.hito}</div>
+                </td>
+                <td>${h.coordinador}</td>
+                <td>${formatDate(h.fecha_inicio)}</td>
+                <td>
+                    <span class="flex items-center gap-4 text-sm font-bold" style="${h.esAtrasado || h.diffDias <= 7 ? 'color:var(--sem-rojo)' : ''}">
+                        <i class="material-icons-round" style="font-size:16px;">flag</i>
+                        ${formatDate(h.fecha_fin)}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${urgenciaClass}">
+                        <i class="material-icons-round" style="font-size:13px; vertical-align:middle;">${h.esAtrasado ? 'warning' : 'alarm'}</i>
+                        ${urgenciaLabel}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">
+                        <i class="material-icons-round" style="font-size: 14px;">visibility</i> Ver
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (hitosGlobales.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="material-icons-round empty-icon">assignment_turned_in</i>
+                <h3>No hay hitos registrados</h3>
+                <p>Aún no se han creado hitos en ninguno de los proyectos.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="card">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Proyecto</th>
+                            <th>Hito</th>
+                            <th>Coordinador</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>Estado / Urgencia</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasHitos}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
 // === Fin del sistema ===
