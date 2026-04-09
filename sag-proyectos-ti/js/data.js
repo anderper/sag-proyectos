@@ -219,8 +219,8 @@ const initialData = {
             id: "ht-001",
             proyecto_id: "prj-001",
             nombre: "Levantamiento Requerimientos",
-            fecha_planificada: "2026-02-15",
-            fecha_real: "2026-02-20",
+            fecha_inicio: "2026-01-20",
+            fecha_fin: "2026-02-15",
             estado: "Completado",
             peso_porcentual: 20
         },
@@ -228,8 +228,8 @@ const initialData = {
             id: "ht-002",
             proyecto_id: "prj-001",
             nombre: "Diseño Arquitectura",
-            fecha_planificada: "2026-03-30",
-            fecha_real: "2026-04-02",
+            fecha_inicio: "2026-02-16",
+            fecha_fin: "2026-03-30",
             estado: "Completado",
             peso_porcentual: 25
         },
@@ -237,8 +237,8 @@ const initialData = {
             id: "ht-003",
             proyecto_id: "prj-001",
             nombre: "Paso a QA",
-            fecha_planificada: "2026-07-01",
-            fecha_real: "",
+            fecha_inicio: "2026-05-01",
+            fecha_fin: "2026-07-01",
             estado: "Pendiente",
             peso_porcentual: 40
         }

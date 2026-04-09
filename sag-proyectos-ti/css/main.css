@@ -408,6 +408,10 @@ h1, h2, h3, h4, .topbar-title {
 .badge-nuevo     { background: #ede9fe; color: #7c3aed; }
 .badge-mejora    { background: #dbeafe; color: #1d4ed8; }
 .badge-correctivo { background: #fff7ed; color: #c2410c; }
+.badge-completado { background: #dcfce7; color: #15803d; }
+.badge-amarillo   { background: var(--sem-amarillo-bg); color: #92400e; }
+.badge-rojo       { background: var(--sem-rojo-bg); color: #b91c1c; }
+.badge-proximo-vencer { background: #fef9c3; color: #854d0e; border: 1px solid var(--sem-amarillo); }
 
 .semaforo-dot {
   width: 10px; height: 10px;
@@ -700,8 +704,12 @@ tbody td {
 }
 .alert-banner.warning { background: var(--sem-amarillo-bg); color: #92400e; border-left: 3px solid var(--sem-amarillo); }
 .alert-banner.danger  { background: var(--sem-rojo-bg); color: #7f1d1d; border-left: 3px solid var(--sem-rojo); }
+.alert-banner.error   { background: var(--sem-rojo-bg); color: #7f1d1d; border-left: 3px solid var(--sem-rojo); }
 .alert-banner.info    { background: #dbeafe; color: #1e3a8a; border-left: 3px solid #3b82f6; }
 .alert-banner.success { background: var(--sem-verde-bg); color: #14532d; border-left: 3px solid var(--sem-verde); }
+
+/* Input con error de validación */
+.input-error { border-color: var(--sem-rojo) !important; background: var(--sem-rojo-bg) !important; }
 
 /* ─── Detail Section ─────────────────────────────────────── */
 .detail-grid {
@@ -734,6 +742,23 @@ tbody td {
 .hito-dot.completado { background: var(--sem-verde); border-color: var(--sem-verde); }
 .hito-dot.pendiente  { background: var(--bg-card); border-color: var(--border); }
 .hito-dot.atrasado   { background: var(--sem-rojo); border-color: var(--sem-rojo); }
+.hito-dot.proximo    { background: var(--sem-amarillo); border-color: var(--sem-amarillo); }
+
+/* Hito con alerta de próximo a vencer */
+.hito-alerta-proximo {
+  background: var(--sem-amarillo-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: -2px -4px;
+  border-left: 3px solid var(--sem-amarillo);
+}
+.hito-alerta-atrasado {
+  background: var(--sem-rojo-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: -2px -4px;
+  border-left: 3px solid var(--sem-rojo);
+}
 .hito-line {
   width: 2px;
   flex: 1;

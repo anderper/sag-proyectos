@@ -28,6 +28,30 @@ function doGet(e) {
       sheet.getRange(1, headers.length + 1).setValue("carta_gantt_url");
     }
   }
+
+  // Asegurar columnas correctas en Hitos (nueva estructura con fecha_inicio / fecha_fin)
+  if (sheetName === "Hitos") {
+    const dataRange = sheet.getDataRange();
+    const headers = dataRange.getValues()[0];
+    // Si aún tiene los nombres antiguos, renombrar
+    const fechaPlanIdx = headers.indexOf("fecha_planificada");
+    if (fechaPlanIdx !== -1 && headers.indexOf("fecha_inicio") === -1) {
+      sheet.getRange(1, fechaPlanIdx + 1).setValue("fecha_inicio");
+    }
+    const fechaRealIdx = headers.indexOf("fecha_real");
+    if (fechaRealIdx !== -1 && headers.indexOf("fecha_fin") === -1) {
+      sheet.getRange(1, fechaRealIdx + 1).setValue("fecha_fin");
+    }
+    // Agregar fecha_fin si no existe ninguna de las dos
+    const hdrs2 = sheet.getDataRange().getValues()[0];
+    if (hdrs2.indexOf("fecha_inicio") === -1) {
+      sheet.getRange(1, hdrs2.length + 1).setValue("fecha_inicio");
+    }
+    const hdrs3 = sheet.getDataRange().getValues()[0];
+    if (hdrs3.indexOf("fecha_fin") === -1) {
+      sheet.getRange(1, hdrs3.length + 1).setValue("fecha_fin");
+    }
+  }
   
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return createResponse([]); // Solo cabeceras

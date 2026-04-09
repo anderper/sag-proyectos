@@ -79,6 +79,13 @@ const appStore = {
                 this.data.riesgos = rData;
             }
 
+            // Sincronizar Hitos
+            const hRes = await fetch(`${GS_URL}?sheet=Hitos`);
+            const hData = await hRes.json();
+            if (hData && Array.isArray(hData)) {
+                this.data.hitos = hData;
+            }
+
             this.saveLocally();
         } catch (e) {
             console.warn("Falla de sincronización cloud (usando locales):", e);
@@ -169,13 +176,33 @@ const appStore = {
         const bdg = document.getElementById('badge-riesgos');
         if(!bdg) return;
         
-        const abiertosActivos = this.data.riesgos.filter(r => r.estado === 'Abierto' && r.impacto === 'Alto');
-        if (abiertosActivos.length > 0) {
-            bdg.textContent = abiertosActivos.length;
+        const riesgosAltos = this.data.riesgos.filter(r => r.estado === 'Abierto' && r.impacto === 'Alto');
+        const hitosAlerta = this.getHitosProximosAVencer();
+        const total = riesgosAltos.length + hitosAlerta.length;
+
+        if (total > 0) {
+            bdg.textContent = total;
             bdg.style.display = 'inline-block';
         } else {
             bdg.style.display = 'none';
         }
+    },
+
+    // Hitos con fecha_fin dentro de los próximos 30 días (excluyendo los ya Completados)
+    getHitosProximosAVencer: function() {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const en30 = new Date(hoy);
+        en30.setDate(hoy.getDate() + 30);
+
+        return this.data.hitos.filter(h => {
+            if (h.estado === 'Completado') return false;
+            if (!h.fecha_fin) return false;
+            const parts = h.fecha_fin.split('-');
+            if (parts.length !== 3) return false;
+            const fechaFin = new Date(parts[0], parts[1] - 1, parts[2]);
+            return fechaFin >= hoy && fechaFin <= en30;
+        });
     },
 
     // --- 2. Operaciones Proyectos ---
@@ -322,7 +349,7 @@ const appStore = {
     getHitosByProyecto: function(proyectoId) {
         return this.data.hitos
             .filter(h => h.proyecto_id === proyectoId)
-            .sort((a, b) => new Date(a.fecha_planificada) - new Date(b.fecha_planificada));
+            .sort((a, b) => new Date(a.fecha_inicio || a.fecha_fin) - new Date(b.fecha_inicio || b.fecha_fin));
     },
 
     saveHito: function(hito) {
@@ -408,6 +435,8 @@ const appStore = {
             .filter(p => p.proveedor && p.proveedor !== 'Interno')
             .reduce((acc, p) => { acc[p.proveedor] = (acc[p.proveedor]||0)+1; return acc; }, {});
 
+        const hitosProximos = this.getHitosProximosAVencer();
+
         return {
             total,
             activos: activos.length,
@@ -416,6 +445,7 @@ const appStore = {
             semaforos,
             avancePromedio,
             proximos,
+            hitosProximos,
             graficoTipos: Object.keys(tiposObj).map(k => ({name: k, value: tiposObj[k]})),
             graficoEstados: Object.keys(estadosObj).map(k => ({name: k, value: estadosObj[k]})),
             graficoProveedores: Object.keys(proveedoresObj).map(k => ({name: k, value: proveedoresObj[k]}))

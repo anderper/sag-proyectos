@@ -227,6 +227,8 @@ function renderDashboard() {
                 </table>
             </div>
         </div>
+
+        ${renderDashboardHitosAlerta(stats)}
     `;
 }
 
@@ -319,6 +321,99 @@ function initDashboardCharts() {
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
+}
+
+// --- Dashboard: Panel de Hitos Próximos a Vencer ---
+function renderDashboardHitosAlerta(stats) {
+    const hitosProximos = stats.hitosProximos || [];
+    if (hitosProximos.length === 0) return '';
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    const filas = hitosProximos.map(h => {
+        const proyecto = appStore.getProyecto(h.proyecto_id);
+        const parts = h.fecha_fin.split('-');
+        const fechaFinDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        const diffDias = Math.ceil((fechaFinDate - hoy) / (1000 * 60 * 60 * 24));
+        
+        let urgenciaClass = '';
+        let urgenciaLabel = '';
+        if (diffDias <= 7) {
+            urgenciaClass = 'badge-rojo';
+            urgenciaLabel = `${diffDias === 0 ? 'Vence hoy' : diffDias === 1 ? 'Mañana' : `En ${diffDias} días`}`;
+        } else if (diffDias <= 15) {
+            urgenciaClass = 'badge-amarillo';
+            urgenciaLabel = `En ${diffDias} días`;
+        } else {
+            urgenciaClass = 'badge-proximo-vencer';
+            urgenciaLabel = `En ${diffDias} días`;
+        }
+
+        return `
+            <tr>
+                <td>
+                    <div class="td-bold">${h.nombre}</div>
+                    <div class="td-small">${proyecto ? proyecto.nombre : 'Proyecto desconocido'}</div>
+                </td>
+                <td class="text-sm">${proyecto ? proyecto.coordinador : '-'}</td>
+                <td>
+                    <span class="flex items-center gap-4 text-sm" style="color: var(--sem-amarillo); font-weight:600;">
+                        <i class="material-icons-round" style="font-size:16px;">play_circle_outline</i>
+                        ${formatDate(h.fecha_inicio)}
+                    </span>
+                </td>
+                <td>
+                    <span class="flex items-center gap-4 text-sm font-bold" style="${diffDias <= 7 ? 'color:var(--sem-rojo)' : 'color:var(--sem-amarillo)'}">
+                        <i class="material-icons-round" style="font-size:16px;">flag</i>
+                        ${formatDate(h.fecha_fin)}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${urgenciaClass}">
+                        <i class="material-icons-round" style="font-size:13px; vertical-align:middle;">alarm</i>
+                        ${urgenciaLabel}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="navigateTo('#/proyectos/detalle/${h.proyecto_id}'); window.currentTabId='tab-hitos';">
+                        Ver Hito
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    return `
+        <div class="card mb-24">
+            <div class="card-header" style="border-left: 4px solid var(--sem-amarillo);">
+                <div class="flex items-center gap-8">
+                    <i class="material-icons-round" style="color: var(--sem-amarillo); font-size: 22px;">alarm</i>
+                    <h3>Hitos Próximos a Vencer
+                        <span class="badge badge-amarillo ml-8" style="font-size:12px; vertical-align:middle;">${hitosProximos.length}</span>
+                    </h3>
+                </div>
+                <p class="text-sm text-muted mt-4">Hitos con fecha fin dentro de los próximos 30 días que aún no están completados.</p>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre del Hito</th>
+                            <th>Coordinador</th>
+                            <th>Fecha Inicio</th>
+                            <th>Fecha Fin</th>
+                            <th>Urgencia</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filas}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
 }
 
 // --- Proyectos ---
@@ -1143,6 +1238,19 @@ window.guardarRiesgo = function(oldProyectoId, riesgoIdStr) {
 // -- Tab Hitos --
 function renderTabHitos(p) {
     const hitos = appStore.getHitosByProyecto(p.id);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const en30 = new Date(hoy);
+    en30.setDate(hoy.getDate() + 30);
+
+    // Calcular peso total para la advertencia
+    const totalPeso = hitos.reduce((acc, h) => acc + (parseFloat(h.peso_porcentual) || 0), 0);
+    const pesoBanner = Math.abs(totalPeso - 100) < 0.1
+        ? `<div class="alert-banner info mb-16"><i class="material-icons-round" style="font-size:16px; vertical-align:middle;">check_circle</i> <strong>Pesos al 100%:</strong> El avance del proyecto se recalcula automáticamente en base a los hitos completados.</div>`
+        : totalPeso > 0
+            ? `<div class="alert-banner warning mb-16"><i class="material-icons-round" style="font-size:16px; vertical-align:middle;">warning</i> <strong>Suma de pesos: ${totalPeso}%</strong> — Para que el avance se recalcule automáticamente, la suma debe ser exactamente 100%.</div>`
+            : `<div class="alert-banner info mb-16"><strong>Regla del Sistema:</strong> El avance del proyecto se calcula automáticamente si la suma del peso de los hitos es 100%.</div>`;
+
     let html = `
         <div class="flex justify-between items-center mb-16">
             <h3 style="font-size: 15px; font-weight:700;">Plan de Hitos y Entregables</h3>
@@ -1150,10 +1258,7 @@ function renderTabHitos(p) {
                 <i class="material-icons-round">add</i> Nuevo Hito
             </button>
         </div>
-        
-        <div class="alert-banner info mb-16">
-            <strong>Regla del Sistema:</strong> El avance del proyecto se calcula automáticamente si la suma del peso de los hitos es 100%.
-        </div>
+        ${pesoBanner}
     `;
 
     if (hitos.length === 0) {
@@ -1162,26 +1267,60 @@ function renderTabHitos(p) {
         html += `<div class="hito-list card p-16">`;
         hitos.forEach(h => {
             const isCompleted = h.estado === 'Completado';
-            const isAtrasado = !isCompleted && new Date(h.fecha_planificada) < new Date();
-            const dotClass = isCompleted ? 'completado' : (isAtrasado ? 'atrasado' : 'pendiente');
             
+            // Evaluar si el hito está atrasado (fecha_fin < hoy y no completado)
+            let fechaFinDate = null;
+            if (h.fecha_fin) {
+                const parts = h.fecha_fin.split('-');
+                if (parts.length === 3) fechaFinDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+            const isAtrasado = !isCompleted && fechaFinDate && fechaFinDate < hoy;
+
+            // Alerta: vence en ≤ 30 días (no completado, fecha_fin entre hoy y en30)
+            const isProximoAVencer = !isCompleted && fechaFinDate && fechaFinDate >= hoy && fechaFinDate <= en30;
+
+            let dotClass = 'pendiente';
+            if (isCompleted) dotClass = 'completado';
+            else if (isAtrasado) dotClass = 'atrasado';
+            else if (isProximoAVencer) dotClass = 'proximo';
+
+            const alertaBadge = isProximoAVencer
+                ? `<span class="badge badge-proximo-vencer ml-8" title="Vence en los próximos 30 días"><i class="material-icons-round" style="font-size:13px; vertical-align:middle;">alarm</i> Próximo a vencer</span>`
+                : '';
+            const atrasadoBadge = isAtrasado
+                ? `<span class="badge badge-rojo ml-8" title="Fecha fin superada"><i class="material-icons-round" style="font-size:13px; vertical-align:middle;">warning</i> Atrasado</span>`
+                : '';
+
+            // Fechas a mostrar
+            const fechaInicioStr = h.fecha_inicio ? `<span><i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">play_circle_outline</i> Inicio: <strong>${formatDate(h.fecha_inicio)}</strong></span>` : '';
+            const fechaFinStr = fechaFinDate ? `<span class="ml-12"><i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px; ${isAtrasado ? 'color:var(--sem-rojo)' : isProximoAVencer ? 'color:var(--sem-amarillo)' : ''}">flag</i> Fin: <strong style="${isAtrasado ? 'color:var(--sem-rojo)' : isProximoAVencer ? 'color:var(--sem-amarillo)' : ''}">${formatDate(h.fecha_fin)}</strong></span>` : '';
+
             html += `
-                <div class="hito-item">
+                <div class="hito-item${isProximoAVencer ? ' hito-alerta-proximo' : ''}${isAtrasado ? ' hito-alerta-atrasado' : ''}">
                     <div class="hito-dot-col">
                         <div class="hito-dot ${dotClass}"></div>
                         <div class="hito-line"></div>
                     </div>
                     <div class="hito-content">
-                        <div class="flex justify-between">
-                            <div class="hito-name ${isCompleted ? 'text-muted' : ''}" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${h.nombre} <span class="text-xs text-muted font-normal ml-8">Peso: ${h.peso_porcentual}%</span></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="hito-name ${isCompleted ? 'text-muted' : ''}" style="${isCompleted ? 'text-decoration: line-through;' : ''}">
+                                    ${h.nombre}
+                                    <span class="text-xs text-muted font-normal ml-8">Peso: ${h.peso_porcentual}%</span>
+                                    ${alertaBadge}${atrasadoBadge}
+                                </div>
+                            </div>
                             <div class="flex gap-4">
                                 <button class="btn btn-icon btn-sm" onclick="abrirModalFormHito('${p.id}', '${h.id}')" title="Editar"><i class="material-icons-round">edit</i></button>
                                 <button class="btn btn-icon btn-sm" onclick="appStore.deleteHito('${h.id}'); renderView();" title="Eliminar"><i class="material-icons-round" style="color:var(--sem-rojo);">delete</i></button>
                             </div>
                         </div>
-                        <div class="hito-dates">
-                            <i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">event</i> Planificado: ${formatDate(h.fecha_planificada)}
-                            ${h.fecha_real ? ` <span class="ml-8 text-primary font-bold"><i class="material-icons-round" style="font-size:14px; vertical-align:middle; margin-top:-2px;">check_circle</i> Real: ${formatDate(h.fecha_real)}</span>` : ''}
+                        <div class="hito-dates flex gap-4 flex-wrap" style="align-items:center;">
+                            ${fechaInicioStr}
+                            ${fechaFinStr}
+                            <span class="ml-12">
+                                <span class="badge badge-${h.estado === 'Completado' ? 'completado' : h.estado === 'En Progreso' ? 'en-curso' : 'planificado'}" style="font-size:11px;">${h.estado}</span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1193,10 +1332,15 @@ function renderTabHitos(p) {
 }
 
 window.abrirModalFormHito = function(proyectoId, hitoId = null) {
-    let h = { nombre: '', fecha_planificada: '', fecha_real: '', estado: 'Pendiente', peso_porcentual: 0 };
+    let h = { nombre: '', fecha_inicio: '', fecha_fin: '', estado: 'Pendiente', peso_porcentual: 0 };
     if (hitoId) {
         const exist = appStore.data.hitos.find(x => x.id === hitoId);
-        if (exist) h = {...exist};
+        if (exist) {
+            h = {...exist};
+            // Compatibilidad con campos antiguos si vienen del servidor
+            if (!h.fecha_inicio && exist.fecha_planificada) h.fecha_inicio = exist.fecha_planificada;
+            if (!h.fecha_fin && exist.fecha_real) h.fecha_fin = exist.fecha_real;
+        }
     }
 
     const cSelect = (arr, val) => arr.map(x => `<option value="${x}" ${val === x ? 'selected':''}>${x}</option>`).join('');
@@ -1209,37 +1353,49 @@ window.abrirModalFormHito = function(proyectoId, hitoId = null) {
                     <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
                 </div>
                 <div class="modal-body">
-                    <form id="form-hito" class="form-grid">
+                    <form id="form-hito" class="form-grid" onsubmit="return false;">
                         <div class="form-group form-full">
                             <label class="form-label">Nombre del Hito <span class="required">*</span></label>
-                            <input type="text" class="form-control" id="fh-nombre" required value="${h.nombre}">
+                            <input type="text" class="form-control" id="fh-nombre" required value="${h.nombre}" placeholder="Ej: Levantamiento de Requerimientos">
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Fecha Planificada <span class="required">*</span></label>
-                            <input type="date" class="form-control" id="fh-plan" required value="${h.fecha_planificada}">
+                            <label class="form-label">Fecha de Inicio del Hito <span class="required">*</span></label>
+                            <input type="date" class="form-control" id="fh-inicio" required value="${h.fecha_inicio || ''}"
+                                onchange="validarFechasHito()">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Fecha Real de Cumplimiento</label>
-                            <input type="date" class="form-control" id="fh-real" value="${h.fecha_real}">
+                            <label class="form-label">Fecha Fin del Hito <span class="required">*</span></label>
+                            <input type="date" class="form-control" id="fh-fin" required value="${h.fecha_fin || ''}"
+                                onchange="validarFechasHito()">
+                        </div>
+
+                        <div id="fh-fechas-error" class="form-group form-full" style="display:none; margin-top:-8px;">
+                            <div class="alert-banner error" style="padding: 8px 12px; font-size: 13px;">
+                                <i class="material-icons-round" style="font-size:16px; vertical-align:middle;">error_outline</i>
+                                La fecha de inicio no puede ser posterior a la fecha fin del hito.
+                            </div>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">Peso Porcentual (%) <span class="required">*</span></label>
-                            <input type="number" min="0" max="100" class="form-control" id="fh-peso" required value="${h.peso_porcentual}">
+                            <input type="number" min="0" max="100" class="form-control" id="fh-peso" required value="${h.peso_porcentual}" placeholder="0-100">
+                            <div class="form-hint">Si la suma de pesos es 100%, el avance del proyecto se recalcula automáticamente.</div>
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Estado</label>
                             <select class="form-control" id="fh-estado">
-                                ${cSelect(['Pendiente', 'Completado'], h.estado)}
+                                ${cSelect(['Pendiente', 'En Progreso', 'Completado'], h.estado)}
                             </select>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="guardarHito('${proyectoId}', '${hitoId || ''}')">Guardar</button>
+                    <button class="btn btn-primary" onclick="guardarHito('${proyectoId}', '${hitoId || ''}')">
+                        <i class="material-icons-round">save</i> Guardar
+                    </button>
                 </div>
             </div>
         </div>
@@ -1247,16 +1403,50 @@ window.abrirModalFormHito = function(proyectoId, hitoId = null) {
     showModal('form-hito', html);
 };
 
+window.validarFechasHito = function() {
+    const inicio = document.getElementById('fh-inicio')?.value;
+    const fin = document.getElementById('fh-fin')?.value;
+    const errorDiv = document.getElementById('fh-fechas-error');
+    const finInput = document.getElementById('fh-fin');
+    
+    if (!errorDiv) return true;
+
+    if (inicio && fin && inicio > fin) {
+        errorDiv.style.display = 'block';
+        if (finInput) finInput.classList.add('input-error');
+        return false;
+    } else {
+        errorDiv.style.display = 'none';
+        if (finInput) finInput.classList.remove('input-error');
+        return true;
+    }
+};
+
 window.guardarHito = function(proyectoId, hitoIdStr) {
     const form = document.getElementById('form-hito');
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
+    // Validación de fechas
+    if (!validarFechasHito()) {
+        showToast('La fecha de inicio no puede ser posterior a la fecha fin del hito.', 'error');
+        return;
+    }
+
+    const fechaInicio = document.getElementById('fh-inicio').value;
+    const fechaFin = document.getElementById('fh-fin').value;
+
+    // Validación de formato: ambas fechas son requeridas
+    if (!fechaInicio || !fechaFin) {
+        showToast('Debes ingresar la fecha de inicio y la fecha fin del hito.', 'error');
+        return;
+    }
+
     const h = hitoIdStr ? appStore.data.hitos.find(x=>x.id===hitoIdStr) || {} : {};
     h.proyecto_id = proyectoId;
-    h.nombre = document.getElementById('fh-nombre').value;
-    h.fecha_planificada = document.getElementById('fh-plan').value;
-    h.fecha_real = document.getElementById('fh-real').value;
-    h.peso_porcentual = document.getElementById('fh-peso').value;
+    h.nombre = document.getElementById('fh-nombre').value.trim();
+    h.fecha_inicio = fechaInicio;
+    h.fecha_fin = fechaFin;
+    h.peso_porcentual = parseFloat(document.getElementById('fh-peso').value) || 0;
     h.estado = document.getElementById('fh-estado').value;
 
     appStore.saveHito(h);
