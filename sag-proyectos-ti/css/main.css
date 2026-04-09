@@ -327,7 +327,8 @@ h1, h2, h3, h4, .topbar-title {
   /* Utiliza el accent definido localmente en lugar de forzar amarillo */
 }
 .kpi-icon-alerta {
-  /* Hereda el color que le corresponde a la tarjeta */
+  color: var(--kpi-accent) !important;
+  opacity: 1 !important;
   animation: icon-pulse 1.5s ease-in-out infinite;
 }
 @keyframes kpi-pulse {

@@ -158,7 +158,7 @@ function renderDashboard() {
             </div>
 
             <div class="kpi-card${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sag-naranja);">
-                <i class="material-icons-round kpi-icon" style="color: var(--sag-naranja);">warning</i>
+                <i class="material-icons-round kpi-icon${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-icon-alerta' : ''}">warning</i>
                 <div class="kpi-label">Riesgos</div>
                 <div class="kpi-value">${stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0}</div>
             </div>
@@ -170,7 +170,7 @@ function renderDashboard() {
             </div>
 
             <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo);">
-                <i class="material-icons-round kpi-icon" style="color:var(--sem-rojo);">report_problem</i>
+                <i class="material-icons-round kpi-icon${totalAtrasados > 0 ? ' kpi-icon-alerta' : ''}">report_problem</i>
                 <div class="kpi-label">Hitos Vencidos</div>
                 <div class="kpi-value">${totalAtrasados}</div>
             </div>
