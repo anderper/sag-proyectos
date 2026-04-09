@@ -6,6 +6,14 @@
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 const FOLDER_NAME = "SAG_Cartas_Gantt";
 
+function autorizarPermisos() {
+  // NOTA: Selecciona esta función en el editor y presiona "Ejecutar"
+  // Esto forzará que aparezca la ventana de permisos de ESCRITURA para Google Drive.
+  var temp = DriveApp.createFolder("Autorizacion_Temporal_SAG");
+  temp.setTrashed(true); // Se elimina inmediatamente para no dejar basura
+  Logger.log("¡Permisos COMPLETOS de Drive autorizados correctamente!");
+}
+
 function doGet(e) {
   const sheetName = e.parameter.sheet || "Proyectos";
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
