@@ -61,38 +61,32 @@ const appStore = {
             // Sincronizar Proyectos
             const pRes = await fetch(`${GS_URL}?sheet=Proyectos`);
             const pData = await pRes.json();
-            if (pData && Array.isArray(pData)) {
+            if (pData && Array.isArray(pData) && pData.length > 0) {
                 this.data.proyectos = pData;
             }
 
             // Sincronizar Seguimientos
             const sRes = await fetch(`${GS_URL}?sheet=Seguimientos`);
             const sData = await sRes.json();
-            if (sData && Array.isArray(sData)) {
+            if (sData && Array.isArray(sData) && sData.length > 0) {
                 this.data.seguimientos = sData;
             }
 
             // Sincronizar Riesgos
             const rRes = await fetch(`${GS_URL}?sheet=Riesgos`);
             const rData = await rRes.json();
-            if (rData && Array.isArray(rData)) {
+            if (rData && Array.isArray(rData) && rData.length > 0) {
                 this.data.riesgos = rData;
             }
 
             // Sincronizar Hitos
             const hRes = await fetch(`${GS_URL}?sheet=Hitos`);
             const hData = await hRes.json();
-            if (hData && Array.isArray(hData)) {
-                // Mapear campos antiguos a nuevos si es necesario
+            if (hData && Array.isArray(hData) && hData.length > 0) {
                 this.data.hitos = hData.map(h => {
-                    if (h.fecha_planificada && !h.fecha_inicio) {
-                        h.fecha_inicio = h.fecha_planificada;
-                        delete h.fecha_planificada;
-                    }
-                    if (h.fecha_real && !h.fecha_fin) {
-                        h.fecha_fin = h.fecha_real;
-                        delete h.fecha_real;
-                    }
+                    // Convertir fechas ISO a formato YYYY-MM-DD
+                    if (h.fecha_inicio) h.fecha_inicio = h.fecha_inicio.substring(0, 10);
+                    if (h.fecha_fin) h.fecha_fin = h.fecha_fin.substring(0, 10);
                     return h;
                 });
             }
