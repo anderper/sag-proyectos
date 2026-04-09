@@ -149,41 +149,30 @@ function renderDashboard() {
                 <i class="material-icons-round kpi-icon">rocket_launch</i>
                 <div class="kpi-label">Proyectos Activos</div>
                 <div class="kpi-value">${stats.activos}</div>
-                <div class="kpi-sub">de ${stats.total} históricos</div>
             </div>
             
-            <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo);">
-                <i class="material-icons-round kpi-icon" style="color:var(--sem-rojo);">report_problem</i>
-                <div class="kpi-label">Riesgo / Atrasados</div>
-                <div class="kpi-value">${totalAtrasados}</div>
-                <div class="kpi-sub">
-                    ${totalAtrasados === 1 ? '1 hito vencido' : totalAtrasados + ' hitos vencidos'}
-                </div>
-            </div>
-
             <div class="kpi-card" style="--kpi-accent: var(--est-en-curso);">
                 <i class="material-icons-round kpi-icon">trending_up</i>
                 <div class="kpi-label">Avance Promedio</div>
                 <div class="kpi-value">${stats.avancePromedio}%</div>
-                <div class="kpi-sub">De proyectos activos</div>
-            </div>
-
-            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
-                <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">event_busy</i>
-                <div class="kpi-label">Próximos Hitos a Vencer</div>
-                <div class="kpi-value">${totalProximosVencer}</div>
-                <div class="kpi-sub">
-                    ${totalProximosVencer === 1 ? '1 hito' : totalProximosVencer + ' hitos'} en &lt; 30 días
-                </div>
             </div>
 
             <div class="kpi-card${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sag-naranja);">
                 <i class="material-icons-round kpi-icon" style="color: var(--sag-naranja);">warning</i>
-                <div class="kpi-label">Problemas</div>
+                <div class="kpi-label">Riesgos</div>
                 <div class="kpi-value">${stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0}</div>
-                <div class="kpi-sub">
-                    ${(stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0) === 1 ? '1 riesgo/problema' : (stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0) + ' riesgos/problemas'} abiertos
-                </div>
+            </div>
+
+            <div class="kpi-card${totalProximosVencer > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-amarillo);">
+                <i class="material-icons-round kpi-icon${totalProximosVencer > 0 ? ' kpi-icon-alerta' : ''}">event_busy</i>
+                <div class="kpi-label">Hitos Próximos a Vencer</div>
+                <div class="kpi-value">${totalProximosVencer}</div>
+            </div>
+
+            <div class="kpi-card${totalAtrasados > 0 ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sem-rojo);">
+                <i class="material-icons-round kpi-icon" style="color:var(--sem-rojo);">report_problem</i>
+                <div class="kpi-label">Hitos Vencidos</div>
+                <div class="kpi-value">${totalAtrasados}</div>
             </div>
         </div>
 
