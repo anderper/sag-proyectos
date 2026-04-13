@@ -57,6 +57,15 @@ function doGet(e) {
       sheet.getRange(1, hdrs3.length + 1).setValue("fecha_fin");
     }
   }
+
+  // Asegurar que la columna de observaciones existe en Riesgos
+  if (sheetName === "Riesgos") {
+    const dataRange = sheet.getDataRange();
+    const headers = dataRange.getValues()[0];
+    if (headers.indexOf("observaciones") === -1) {
+      sheet.getRange(1, headers.length + 1).setValue("observaciones");
+    }
+  }
   
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return createResponse([]); // Solo cabeceras

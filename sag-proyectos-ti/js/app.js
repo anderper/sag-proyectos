@@ -1189,12 +1189,12 @@ function renderTabRiesgos(p) {
                     <thead>
                         <tr>
                             <th>Tipo</th>
-                            <th>Descripción</th>
+                            <th style="width: 40%">Descripción</th>
                             <th>Impacto</th>
                             <th>Estado</th>
                             <th>Responsable</th>
                             <th>Compromiso</th>
-                            <th>Acciones</th>
+                            <th style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1207,7 +1207,11 @@ function renderTabRiesgos(p) {
                             <td class="text-sm">${r.responsable}</td>
                             <td class="text-sm ${new Date(r.fecha_compromiso) < new Date() && r.estado === 'Abierto' ? 'text-primary font-bold' : ''}">${formatDate(r.fecha_compromiso)}</td>
                             <td>
-                                <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')"><i class="ph ph-pencil-simple"></i></button>
+                                <div class="flex gap-4 items-center">
+                                    ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
+                                    ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
+                                    <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')" title="Editar / Bitácora" style="padding: 4px;"><i class="ph ph-list-dashes"></i></button>
+                                </div>
                             </td>
                         </tr>
                         `).join('')}
@@ -1286,6 +1290,16 @@ window.abrirModalFormRiesgo = function(proyectoId, riesgoId = null, isGlobal = f
                             <label class="form-label">Plan de Acción / Mitigación</label>
                             <textarea class="form-control" style="min-height:50px;" id="fr-plan">${r.plan_accion}</textarea>
                         </div>
+                        
+                        <div class="form-group form-full mt-8">
+                            <label class="form-label">Bitácora de Observaciones</label>
+                            <div class="observaciones-historial text-sm text-secondary" style="background: var(--bg-secondary); padding: 12px; border-radius: 4px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;">${r.observaciones ? r.observaciones : 'No hay observaciones previas.'}</div>
+                            <input type="hidden" id="fr-observaciones-viejas" value="${r.observaciones || ''}">
+                        </div>
+                        <div class="form-group form-full">
+                            <label class="form-label">Agregar Nueva Observación</label>
+                            <textarea class="form-control" id="fr-nueva-observacion" placeholder="Ej: Se contactó al proveedor hoy..."></textarea>
+                        </div>
 
                         <div class="form-group">
                             <label class="form-label">Responsable Gestión</label>
@@ -1329,9 +1343,77 @@ window.guardarRiesgo = function(oldProyectoId, riesgoIdStr) {
     r.responsable = document.getElementById('fr-responsable').value;
     r.fecha_compromiso = document.getElementById('fr-fecha').value;
 
+    const nuevaObs = document.getElementById('fr-nueva-observacion') ? document.getElementById('fr-nueva-observacion').value.trim() : '';
+    let obsAcumulada = document.getElementById('fr-observaciones-viejas') ? document.getElementById('fr-observaciones-viejas').value : '';
+    
+    if (nuevaObs) {
+        const fechaActual = new Date().toLocaleDateString('es-CL');
+        const entrada = `[${fechaActual}] 📝 ${nuevaObs}`;
+        obsAcumulada = obsAcumulada ? obsAcumulada + '\n\n' + entrada : entrada;
+        r.observaciones = obsAcumulada;
+    }
+
     appStore.saveRiesgo(r);
     closeModal();
     showToast('Registro guardado exitosamente');
+    renderView();
+};
+
+window.accionarRiesgo = function(riesgoId, nuevoEstado) {
+    const r = appStore.getAllRiesgos().find(x => x.id === riesgoId);
+    if (!r) return;
+
+    if (nuevoEstado === 'En gestión') {
+        r.estado = 'En gestión';
+        appStore.saveRiesgo(r);
+        showToast('Riesgo marcado como En gestión');
+        renderView();
+        return;
+    }
+
+    if (nuevoEstado === 'Cerrado') {
+        const html = `
+            <div class="modal-overlay">
+                <div class="modal modal-md">
+                    <div class="modal-header">
+                        <h2>Cierre del Registro</h2>
+                        <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group form-full">
+                            <label class="form-label">Comentario de Resolución <span class="required">*</span></label>
+                            <textarea class="form-control" id="fr-cierre-comentario" required placeholder="Indica cómo se solucionó la situación..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="confirmarCierreRiesgo('${riesgoId}')"><i class="material-icons-round">check</i> Confirmar Cierre</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        showModal('form-cierre-riesgo', html);
+    }
+};
+
+window.confirmarCierreRiesgo = function(riesgoId) {
+    const comentario = document.getElementById('fr-cierre-comentario').value;
+    if (!comentario.trim()) {
+        showToast('Debe ingresar un comentario de resolución', 'warning');
+        return;
+    }
+
+    const r = appStore.getAllRiesgos().find(x => x.id === riesgoId);
+    if (!r) return;
+
+    r.estado = 'Cerrado';
+    const fechaActual = new Date().toLocaleDateString('es-CL');
+    const entradaBitacora = `[${fechaActual}] 🟢 CERRADO: ${comentario}`;
+    r.observaciones = r.observaciones ? r.observaciones + '\n\n' + entradaBitacora : entradaBitacora;
+
+    appStore.saveRiesgo(r);
+    closeModal();
+    showToast('Registro cerrado exitosamente');
     renderView();
 };
 
@@ -1603,7 +1685,7 @@ function renderRiesgos() {
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Proyecto</th><th>Tipo</th><th>Impacto</th><th>Estado</th><th>Compromiso</th></tr>
+                        <tr><th>Proyecto</th><th>Tipo</th><th>Impacto</th><th>Estado</th><th>Compromiso</th><th style="width:100px;">Acciones</th></tr>
                     </thead>
                     <tbody>
                         ${rs.filter(r=>r.estado!=='Cerrado').map(r => {
@@ -1615,6 +1697,13 @@ function renderRiesgos() {
                                     <td>${renderBadgePrioridad(r.impacto)}</td>
                                     <td>${renderBadgeEstado(r.estado)}</td>
                                     <td>${formatDate(r.fecha_compromiso)}</td>
+                                    <td>
+                                        <div class="flex gap-4 items-center" onclick="event.stopPropagation()">
+                                            ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
+                                            ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
+                                            <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo(null, '${r.id}', true)" title="Editar / Bitácora" style="padding: 4px;"><i class="ph ph-list-dashes"></i></button>
+                                        </div>
+                                    </td>
                                 </tr>
                             `;
                         }).join('')}
