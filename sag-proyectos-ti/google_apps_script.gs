@@ -20,17 +20,18 @@ function doGet(e) {
   
   if (!sheet) return createResponse([]);
 
-  // Asegurar que las columnas de archivos existen en Proyectos
+  // Asegurar que las columnas existen en Proyectos
   if (sheetName === "Proyectos") {
     const dataRange = sheet.getDataRange();
-    const headers = dataRange.getValues()[0];
-    if (headers.indexOf("carta_gantt_url") === -1) {
-      sheet.getRange(1, headers.length + 1).setValue("carta_gantt_url");
-    }
-    const headersUpdated = sheet.getDataRange().getValues()[0];
-    if (headersUpdated.indexOf("documento_compra_url") === -1) {
-      sheet.getRange(1, headersUpdated.length + 1).setValue("documento_compra_url");
-    }
+    let headers = dataRange.getValues()[0];
+    const columnsToCheck = ["carta_gantt_url", "documento_compra_url", "inicio_contrato", "fin_contrato"];
+    
+    columnsToCheck.forEach(col => {
+      if (headers.indexOf(col) === -1) {
+        sheet.getRange(1, headers.length + 1).setValue(col);
+        headers = sheet.getDataRange().getValues()[0]; // Recargar headers
+      }
+    });
   }
 
   // Asegurar columnas correctas en Hitos (nueva estructura con fecha_inicio / fecha_fin)

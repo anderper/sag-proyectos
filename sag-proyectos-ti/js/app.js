@@ -554,21 +554,40 @@ window.abrirModalFormProyecto = function(id = null) {
                 </div>
                 <div class="modal-body">
                     <form id="form-proyecto" class="form-grid-3">
+                        <!-- Sección: Información General -->
+                        <div class="form-group form-full">
+                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px;">1. Información General</h4>
+                        </div>
                         <div class="form-group form-full">
                             <label class="form-label">Nombre del Proyecto <span class="required">*</span></label>
                             <input type="text" class="form-control" id="f-nombre" required value="${p.nombre}">
                         </div>
-                        
                         <div class="form-group form-full">
                             <label class="form-label">Descripción</label>
                             <textarea class="form-control" id="f-descripcion">${p.descripcion}</textarea>
                         </div>
-                        
                         <div class="form-group">
                             <label class="form-label">Sistema Asociado <span class="required">*</span></label>
                             <select class="form-control" id="f-sistema" required>
                                 ${cSelect(catalogos.sistemas, p.sistema)}
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Categoría</label>
+                            <select class="form-control" id="f-categoria">
+                                ${cSelect(catalogos.categorias, p.categoria)}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo Proyecto</label>
+                            <select class="form-control" id="f-tipo">
+                                ${cSelect(["Nuevo", "Mejora", "Correctivo"], p.tipo_proyecto)}
+                            </select>
+                        </div>
+
+                        <!-- Sección: Responsables -->
+                        <div class="form-group form-full mt-8">
+                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px;">2. Responsables</h4>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Coordinador TI <span class="required">*</span></label>
@@ -587,11 +606,9 @@ window.abrirModalFormProyecto = function(id = null) {
                             <input type="text" class="form-control" id="f-responsable-usuario" value="${p.responsable_usuario || ''}" placeholder="Nombre de la persona...">
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Tipo Proyecto</label>
-                            <select class="form-control" id="f-tipo">
-                                ${cSelect(["Nuevo", "Mejora", "Correctivo"], p.tipo_proyecto)}
-                            </select>
+                        <!-- Sección: Desarrollo y Contratos -->
+                        <div class="form-group form-full mt-8">
+                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px;">3. Desarrollo y Contratos</h4>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Tipo Desarrollo</label>
@@ -608,11 +625,23 @@ window.abrirModalFormProyecto = function(id = null) {
                                 ${cSelect(catalogos.proveedores, p.proveedor)}
                             </select>
                         </div>
-                        <div class="form-group form-full">
-                            <label class="form-label">Equipo Proveedor / Contraparte Técnica</label>
-                            <textarea class="form-control" id="f-equipo-proveedor" placeholder="Ej: Ana Martínez-Desarrolladora, Javier Campos-Scrum Master...">${p.equipo_proveedor || ''}</textarea>
+                        <div class="form-group">
+                            <label class="form-label">Equipo Proveedor</label>
+                            <input type="text" class="form-control" id="f-equipo-proveedor" placeholder="Ej: Ana M., Javier C..." value="${p.equipo_proveedor || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha Inicio Contrato</label>
+                            <input type="date" class="form-control" id="f-inicio-contrato" value="${formatDateForInput(p.inicio_contrato)}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fecha Fin Contrato</label>
+                            <input type="date" class="form-control" id="f-fin-contrato" value="${formatDateForInput(p.fin_contrato)}">
                         </div>
 
+                        <!-- Sección: Planificación y Estado -->
+                        <div class="form-group form-full mt-8">
+                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px;">4. Planificación y Estado Actual</h4>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Fecha Inicio Planificada</label>
                             <input type="date" class="form-control" id="f-inicio-plan" value="${formatDateForInput(p.fecha_inicio_planificada)}">
@@ -625,17 +654,6 @@ window.abrirModalFormProyecto = function(id = null) {
                             <label class="form-label">Estado Actual</label>
                             <select class="form-control" id="f-estado">
                                 ${cSelect(catalogos.estados, p.estado)}
-                            </select>
-                        </div>
-                        
-                        <div class="form-group form-full mt-8">
-                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px;">Atributos Adicionales</h4>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Categoría</label>
-                            <select class="form-control" id="f-categoria">
-                                ${cSelect(catalogos.categorias, p.categoria)}
                             </select>
                         </div>
                         <div class="form-group">
@@ -651,7 +669,11 @@ window.abrirModalFormProyecto = function(id = null) {
                             </select>
                         </div>
 
+                        <!-- Sección: Archivos Adjuntos -->
                         <div class="form-group form-full mt-8">
+                            <h4 class="form-label text-muted" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 8px;">5. Archivos Adjuntos</h4>
+                        </div>
+                        <div class="form-group form-full">
                             <label class="form-label">Carta Gantt (Excel)</label>
                             <div class="flex items-center gap-12">
                                 <input type="file" id="f-gantt-file" style="display: none;" onchange="onGanttFileSelected(this)">
@@ -666,7 +688,7 @@ window.abrirModalFormProyecto = function(id = null) {
                             </div>
                         </div>
 
-                        <div class="form-group form-full mt-8" id="div-doc-compra" style="display: ${p.tipo_desarrollo === 'Externo' ? 'block' : 'none'};">
+                        <div class="form-group form-full" id="div-doc-compra" style="display: ${p.tipo_desarrollo === 'Externo' ? 'block' : 'none'}; mt-8">
                             <label class="form-label">Documento de Compra (PDF)</label>
                             <div class="flex items-center gap-12">
                                 <input type="file" id="f-doc-compra-file" accept=".pdf" style="display: none;" onchange="onDocCompraFileSelected(this)">
@@ -729,6 +751,8 @@ window.guardarProyecto = function(idStr) {
     p.categoria = document.getElementById('f-categoria').value;
     p.prioridad = document.getElementById('f-prioridad').value;
     p.criticidad = document.getElementById('f-criticidad').value;
+    p.inicio_contrato = document.getElementById('f-inicio-contrato').value;
+    p.fin_contrato = document.getElementById('f-fin-contrato').value;
     p.carta_gantt_url = document.getElementById('f-gantt-url').value;
     p.documento_compra_url = document.getElementById('f-doc-compra-url').value;
 
