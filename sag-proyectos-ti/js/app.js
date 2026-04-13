@@ -1210,7 +1210,8 @@ function renderTabRiesgos(p) {
                                 <div class="flex gap-4 items-center">
                                     ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
                                     ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
-                                    <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')" title="Editar / Bitácora" style="padding: 4px;"><i class="ph ph-list-dashes"></i></button>
+                                    <button class="btn btn-icon text-warning btn-sm" onclick="abrirModalObservacion('${r.id}')" title="Agregar Observación" style="padding: 4px;"><i class="material-icons-round">add_comment</i></button>
+                                    <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')" title="Editar Detalles" style="padding: 4px;"><i class="ph ph-pencil-simple"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -1414,6 +1415,50 @@ window.confirmarCierreRiesgo = function(riesgoId) {
     appStore.saveRiesgo(r);
     closeModal();
     showToast('Registro cerrado exitosamente');
+    renderView();
+};
+
+window.abrirModalObservacion = function(riesgoId) {
+    const html = `
+        <div class="modal-overlay">
+            <div class="modal modal-md">
+                <div class="modal-header">
+                    <h2>Agregar Nueva Observación</h2>
+                    <button class="btn btn-icon" onclick="closeModal()"><i class="material-icons-round">close</i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group form-full">
+                        <label class="form-label">Comentario u Observación <span class="required">*</span></label>
+                        <textarea class="form-control" id="fr-quick-observacion" required placeholder="Escribe aquí el seguimiento que le has dado al riesgo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="guardarQuickObservacion('${riesgoId}')"><i class="material-icons-round">save</i> Guardar Observación</button>
+                </div>
+            </div>
+        </div>
+    `;
+    showModal('form-quick-obs', html);
+};
+
+window.guardarQuickObservacion = function(riesgoId) {
+    const comentario = document.getElementById('fr-quick-observacion').value;
+    if (!comentario.trim()) {
+        showToast('Debe ingresar un comentario', 'warning');
+        return;
+    }
+
+    const r = appStore.getAllRiesgos().find(x => x.id === riesgoId);
+    if (!r) return;
+
+    const fechaActual = new Date().toLocaleDateString('es-CL');
+    const entradaBitacora = `[${fechaActual}] 📝 ${comentario}`;
+    r.observaciones = r.observaciones ? r.observaciones + '\n\n' + entradaBitacora : entradaBitacora;
+
+    appStore.saveRiesgo(r);
+    closeModal();
+    showToast('Observación agregada exitosamente');
     renderView();
 };
 
@@ -1701,7 +1746,8 @@ function renderRiesgos() {
                                         <div class="flex gap-4 items-center" onclick="event.stopPropagation()">
                                             ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
                                             ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
-                                            <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo(null, '${r.id}', true)" title="Editar / Bitácora" style="padding: 4px;"><i class="ph ph-list-dashes"></i></button>
+                                            <button class="btn btn-icon text-warning btn-sm" onclick="abrirModalObservacion('${r.id}')" title="Agregar Observación" style="padding: 4px;"><i class="material-icons-round">add_comment</i></button>
+                                            <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo(null, '${r.id}', true)" title="Editar Detalles" style="padding: 4px;"><i class="ph ph-pencil-simple"></i></button>
                                         </div>
                                     </td>
                                 </tr>

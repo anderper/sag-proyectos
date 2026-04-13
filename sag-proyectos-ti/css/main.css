@@ -484,6 +484,12 @@ h1, h2, h3, h4, .topbar-title {
 }
 .btn-export:hover { background: #1a5c38; }
 
+/* Utilities for icons/text colors */
+.text-success { color: var(--sag-green) !important; }
+.text-primary { color: var(--sag-teal) !important; }
+.text-danger  { color: var(--sem-rojo) !important; }
+.text-warning { color: var(--sag-naranja) !important; }
+
 /* ─── Forms ──────────────────────────────────────────────── */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
