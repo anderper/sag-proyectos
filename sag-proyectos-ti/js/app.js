@@ -494,6 +494,7 @@ function renderProyectosTableRows(proyectos) {
                 <div class="flex gap-4">
                     <button class="btn btn-icon" onclick="abrirModalFormProyecto('${p.id}')" data-tooltip="Editar"><i class="material-icons-round">edit</i></button>
                     ${p.carta_gantt_url ? `<button class="btn btn-icon text-primary" onclick="window.open('${p.carta_gantt_url}', '_blank')" data-tooltip="Ver Carta Gantt"><i class="material-icons-round">analytics</i></button>` : ''}
+                    ${p.documento_compra_url ? `<button class="btn btn-icon text-success" onclick="window.open('${p.documento_compra_url}', '_blank')" data-tooltip="Ver Doc. Compra"><i class="material-icons-round">request_quote</i></button>` : ''}
                 </div>
             </td>
         </tr>
@@ -594,7 +595,10 @@ window.abrirModalFormProyecto = function(id = null) {
                         </div>
                         <div class="form-group">
                             <label class="form-label">Tipo Desarrollo</label>
-                            <select class="form-control" id="f-desarrollo" onchange="document.getElementById('f-proveedor').disabled = this.value === 'Interno'">
+                            <select class="form-control" id="f-desarrollo" onchange="
+                                document.getElementById('f-proveedor').disabled = this.value === 'Interno';
+                                document.getElementById('div-doc-compra').style.display = this.value === 'Externo' ? 'block' : 'none';
+                            ">
                                 ${cSelect(catalogos.tiposDesarrollo, p.tipo_desarrollo)}
                             </select>
                         </div>
@@ -661,6 +665,20 @@ window.abrirModalFormProyecto = function(id = null) {
                                 <input type="hidden" id="f-proyecto-actual-id" value="${id || p.id || ''}">
                             </div>
                         </div>
+
+                        <div class="form-group form-full mt-8" id="div-doc-compra" style="display: ${p.tipo_desarrollo === 'Externo' ? 'block' : 'none'};">
+                            <label class="form-label">Documento de Compra (PDF)</label>
+                            <div class="flex items-center gap-12">
+                                <input type="file" id="f-doc-compra-file" accept=".pdf" style="display: none;" onchange="onDocCompraFileSelected(this)">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('f-doc-compra-file').click()">
+                                    <i class="material-icons-round">attach_file</i> ${p.documento_compra_url ? 'Cambiar Archivo' : 'Subir Documento (PDF)'}
+                                </button>
+                                <div id="doc-compra-file-info" class="text-xs text-secondary">
+                                    ${p.documento_compra_url ? `<a href="${p.documento_compra_url}" target="_blank" class="flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">link</i> Ver documento actual</a>` : 'No hay documento adjunto'}
+                                </div>
+                                <input type="hidden" id="f-doc-compra-url" value="${p.documento_compra_url || ''}">
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -712,6 +730,7 @@ window.guardarProyecto = function(idStr) {
     p.prioridad = document.getElementById('f-prioridad').value;
     p.criticidad = document.getElementById('f-criticidad').value;
     p.carta_gantt_url = document.getElementById('f-gantt-url').value;
+    p.documento_compra_url = document.getElementById('f-doc-compra-url').value;
 
     appStore.saveProyecto(p);
     closeModal();
@@ -765,6 +784,63 @@ window.onGanttFileSelected = async function(input) {
                 const updatedP = appStore.getProyecto(pId);
                 if (updatedP) {
                     updatedP.carta_gantt_url = res.url;
+                }
+            } else {
+                info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error.</span>`;
+                showToast('Error al subir: ' + (res.error || 'Desconocido'), 'error');
+            }
+        };
+        reader.readAsDataURL(file);
+    } catch (err) {
+        console.error(err);
+        info.innerHTML = `<span class="text-danger">Error fatal. ${err.message}</span>`;
+    }
+};
+
+window.onDocCompraFileSelected = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+        showToast('El archivo debe ser un documento PDF.', 'error');
+        return;
+    }
+
+    const pId = document.getElementById('f-proyecto-actual-id')?.value || 
+                (window.location.hash.includes('detalle') ? window.location.hash.split('/').pop() : null); 
+    
+    if (!pId) {
+        showToast('Debes asignar un nombre al proyecto antes de subir el documento', 'warning');
+        return;
+    }
+
+    const info = document.getElementById('doc-compra-file-info');
+    info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">sync</i> Preparando documento...</span>`;
+    
+    try {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64 = e.target.result.split(',')[1];
+            const fileData = {
+                fileName: file.name,
+                contentType: file.type,
+                base64: base64
+            };
+            
+            info.innerHTML = `<span class="flex items-center gap-4"><i class="material-icons-round rotating" style="font-size:14px;">cloud_upload</i> Subiendo a Drive...</span>`;
+            
+            const res = await appStore.uploadPurchaseDoc(pId, fileData);
+            
+            if (res.success && res.url) {
+                document.getElementById('f-doc-compra-url').value = res.url;
+                
+                info.innerHTML = `<span class="text-success flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">check_circle</i> ¡Terminado!</span> <a href="${res.url}" target="_blank" class="flex items-center gap-4 mt-4" style="color:var(--sag-green);"><i class="material-icons-round" style="font-size:14px;">link</i> Ver documento adjunto</a>`;
+                
+                showToast('Documento enviado correctamente.');
+                
+                const updatedP = appStore.getProyecto(pId);
+                if (updatedP) {
+                    updatedP.documento_compra_url = res.url;
                 }
             } else {
                 info.innerHTML = `<span class="text-danger flex items-center gap-4"><i class="material-icons-round" style="font-size:14px;">error</i> Error.</span>`;

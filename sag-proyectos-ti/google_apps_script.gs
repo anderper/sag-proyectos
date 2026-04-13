@@ -20,12 +20,16 @@ function doGet(e) {
   
   if (!sheet) return createResponse([]);
 
-  // Asegurar que la columna carta_gantt_url existe en Proyectos
+  // Asegurar que las columnas de archivos existen en Proyectos
   if (sheetName === "Proyectos") {
     const dataRange = sheet.getDataRange();
     const headers = dataRange.getValues()[0];
     if (headers.indexOf("carta_gantt_url") === -1) {
       sheet.getRange(1, headers.length + 1).setValue("carta_gantt_url");
+    }
+    const headersUpdated = sheet.getDataRange().getValues()[0];
+    if (headersUpdated.indexOf("documento_compra_url") === -1) {
+      sheet.getRange(1, headersUpdated.length + 1).setValue("documento_compra_url");
     }
   }
 
@@ -92,13 +96,15 @@ function doPost(e) {
       return createResponse({ success: true });
     } 
 
-    if (action === "upload_gantt") {
-      const folderRes = DriveApp.getFoldersByName(FOLDER_NAME);
+    if (action === "upload_gantt" || action === "upload_purchase_doc") {
+      const FOLDER_DOCS = action === "upload_gantt" ? FOLDER_NAME : "SAG_Documentos_Compra";
+      
+      const folderRes = DriveApp.getFoldersByName(FOLDER_DOCS);
       let folder;
       if (folderRes.hasNext()) {
         folder = folderRes.next();
       } else {
-        folder = DriveApp.createFolder(FOLDER_NAME);
+        folder = DriveApp.createFolder(FOLDER_DOCS);
       }
       
       const contentType = params.data.contentType;
@@ -118,7 +124,8 @@ function doPost(e) {
           const pData = pSheet.getDataRange().getValues();
           const pHeaders = pData[0];
           const pIdIdx = pHeaders.indexOf("id");
-          const pGanttIdx = pHeaders.indexOf("carta_gantt_url");
+          const columnToUpdate = action === "upload_gantt" ? "carta_gantt_url" : "documento_compra_url";
+          const pGanttIdx = pHeaders.indexOf(columnToUpdate);
           
           if (pIdIdx !== -1 && pGanttIdx !== -1) {
             for (let i = 1; i < pData.length; i++) {

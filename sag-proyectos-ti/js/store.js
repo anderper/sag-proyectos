@@ -3,7 +3,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'sag_proyectos_data';
-const GS_URL = 'https://script.google.com/macros/s/AKfycbzL8DwgWMa-OGzFAss4k19hDqtREnFlmtQON4s-OLq-Cp1w5YgysZmiPCJYgmpk5ck9/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbwcoWBVtY48qHwvP--EC46VwubYNoUFvk9eTiFjbDeDGDFiv0mGzu2XkJaVIsHZdSY/exec';
 
 const appStore = {
     data: {
@@ -136,6 +136,23 @@ const appStore = {
             return result;
         } catch (e) {
             console.error("Error en uploadGantt:", e);
+            return { error: "Error de red o conexión", detail: e.message };
+        }
+    },
+
+    uploadPurchaseDoc: async function(projectId, fileData) {
+        try {
+            const response = await fetch(GS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: 'upload_purchase_doc', 
+                    data: { ...fileData, projectId: projectId } 
+                })
+            });
+            const result = await response.json();
+            return result;
+        } catch (e) {
+            console.error("Error en uploadPurchaseDoc:", e);
             return { error: "Error de red o conexión", detail: e.message };
         }
     },
