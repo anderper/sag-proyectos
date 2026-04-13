@@ -162,7 +162,7 @@ function renderDashboard() {
                 <div class="kpi-value">${stats.avancePromedio}%</div>
             </div>
 
-            <div class="kpi-card${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sag-naranja);">
+            <div class="kpi-card${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-card-alerta' : ''}" style="--kpi-accent: var(--sag-naranja); cursor: pointer;" onclick="navigateTo('#/riesgos')">
                 <i class="material-icons-round kpi-icon${(stats.riesgosAbiertos && stats.riesgosAbiertos.length > 0) ? ' kpi-icon-alerta' : ''}">warning</i>
                 <div class="kpi-label">Riesgos</div>
                 <div class="kpi-value">${stats.riesgosAbiertos ? stats.riesgosAbiertos.length : 0}</div>
@@ -1603,14 +1603,14 @@ function renderRiesgos() {
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>ID / Proyecto</th><th>Tipo</th><th>Impacto</th><th>Estado</th><th>Compromiso</th></tr>
+                        <tr><th>Proyecto</th><th>Tipo</th><th>Impacto</th><th>Estado</th><th>Compromiso</th></tr>
                     </thead>
                     <tbody>
                         ${rs.filter(r=>r.estado!=='Cerrado').map(r => {
                             const p = appStore.getProyecto(r.proyecto_id);
                             return `
                                 <tr onclick="navigateTo('#/proyectos/detalle/${p?.id}')">
-                                    <td><div class="td-bold">${r.id}</div><div class="text-xs text-muted">${p ? p.nombre : 'Desc'}</div></td>
+                                    <td><div class="td-bold">${p ? p.nombre : 'Proyecto sin asignar'}</div></td>
                                     <td><span class="badge badge-${r.tipo.toLowerCase()}">${r.tipo}</span></td>
                                     <td>${renderBadgePrioridad(r.impacto)}</td>
                                     <td>${renderBadgeEstado(r.estado)}</td>
