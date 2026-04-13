@@ -110,14 +110,9 @@ function doPost(e) {
       const contentType = params.data.contentType;
       const base64Data = params.data.base64;
       const fileName = params.data.fileName;
-      const projectId = params.data.projectId; // Obtenemos el ID del proyecto
-      
-      const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType, fileName);
-      const file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      const fileUrl = file.getUrl();
+      const projectId = params.data.projectId; 
 
-      // Si tenemos un projectId, actualizamos la hoja de Proyectos inmediatamente
+      // 1. LIMPIEZA PREVIA: Si ya existe un archivo, lo borramos de Drive
       if (projectId) {
         const pSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proyectos");
         if (pSheet) {
@@ -125,15 +120,39 @@ function doPost(e) {
           const pHeaders = pData[0];
           const pIdIdx = pHeaders.indexOf("id");
           const columnToUpdate = action === "upload_gantt" ? "carta_gantt_url" : "documento_compra_url";
-          const pGanttIdx = pHeaders.indexOf(columnToUpdate);
+          const pColIdx = pHeaders.indexOf(columnToUpdate);
           
-          if (pIdIdx !== -1 && pGanttIdx !== -1) {
+          if (pIdIdx !== -1 && pColIdx !== -1) {
             for (let i = 1; i < pData.length; i++) {
               if (pData[i][pIdIdx] == projectId) {
-                pSheet.getRange(i + 1, pGanttIdx + 1).setValue(fileUrl);
+                const oldUrl = pData[i][pColIdx];
+                eliminarArchivoPorUrl(oldUrl); // Intentamos borrar el anterior
                 break;
               }
             }
+          }
+        }
+      }
+      
+      // 2. SUBIDA NUEVA
+      const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType, fileName);
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const fileUrl = file.getUrl();
+
+      // 3. ACTUALIZACIÓN DE TABLA
+      if (projectId) {
+        const pSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proyectos");
+        const pData = pSheet.getDataRange().getValues();
+        const pHeaders = pData[0];
+        const pIdIdx = pHeaders.indexOf("id");
+        const columnToUpdate = action === "upload_gantt" ? "carta_gantt_url" : "documento_compra_url";
+        const pColIdx = pHeaders.indexOf(columnToUpdate);
+
+        for (let i = 1; i < pData.length; i++) {
+          if (pData[i][pIdIdx] == projectId) {
+            pSheet.getRange(i + 1, pColIdx + 1).setValue(fileUrl);
+            break;
           }
         }
       }
@@ -149,6 +168,13 @@ function doPost(e) {
             const updatedRow = headers.map(h => params.data[h] !== undefined ? params.data[h] : dataRows[i][headers.indexOf(h)]);
             sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
           } else if (action === "delete") {
+            // Si es borrado de Proyecto, borramos sus archivos de Drive primero
+            if (sheetName === "Proyectos") {
+               const ganttIdx = headers.indexOf("carta_gantt_url");
+               const docIdx = headers.indexOf("documento_compra_url");
+               if(ganttIdx !== -1) eliminarArchivoPorUrl(dataRows[i][ganttIdx]);
+               if(docIdx !== -1) eliminarArchivoPorUrl(dataRows[i][docIdx]);
+            }
             sheet.deleteRow(i + 1);
           }
           return createResponse({ success: true });
@@ -159,6 +185,30 @@ function doPost(e) {
     return createResponse({ error: "Acción no realizada", detail: "ID no encontrado" });
   } catch (err) {
     return createResponse({ error: err.toString() });
+  }
+}
+
+/**
+ * Función auxiliar para borrar un archivo de Drive a partir de su URL pública
+ */
+function eliminarArchivoPorUrl(url) {
+  if (!url || typeof url !== "string" || url.indexOf("drive.google.com") === -1) return;
+  
+  try {
+    // Extraer ID de la URL (formatos /d/ID/ o ?id=ID)
+    let fileId = "";
+    const matchD = url.match(/\/d\/(.*?)[\/\?]/);
+    const matchId = url.match(/[?&]id=(.*?)(&|$)/);
+    
+    if (matchD) fileId = matchD[1];
+    else if (matchId) fileId = matchId[1];
+    
+    if (fileId) {
+      const file = DriveApp.getFileById(fileId);
+      file.setTrashed(true); // Se envía a la papelera (petición de eliminación)
+    }
+  } catch (e) {
+    Logger.log("No se pudo borrar el archivo: " + url + " - Error: " + e.message);
   }
 }
 
