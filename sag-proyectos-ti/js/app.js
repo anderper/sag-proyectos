@@ -1211,7 +1211,7 @@ function renderTabRiesgos(p) {
                                     ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
                                     ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
                                     <button class="btn btn-icon text-warning btn-sm" onclick="abrirModalObservacion('${r.id}')" title="Agregar Observación" style="padding: 4px;"><i class="material-icons-round">add_comment</i></button>
-                                    <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')" title="Editar Detalles" style="padding: 4px;"><i class="ph ph-pencil-simple"></i></button>
+                                    <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo('${p.id}', '${r.id}')" title="Editar Detalles" style="padding: 4px;"><i class="material-icons-round">edit</i></button>
                                 </div>
                             </td>
                         </tr>
@@ -1747,7 +1747,7 @@ function renderRiesgos() {
                                             ${r.estado === 'Abierto' ? `<button class="btn btn-icon text-primary btn-sm" onclick="accionarRiesgo('${r.id}', 'En gestión')" title="Marcar En Gestión" style="padding: 4px;"><i class="material-icons-round">play_arrow</i></button>` : ''}
                                             ${r.estado !== 'Cerrado' ? `<button class="btn btn-icon text-success btn-sm" onclick="accionarRiesgo('${r.id}', 'Cerrado')" title="Resolver / Cerrar" style="padding: 4px;"><i class="material-icons-round">check_circle</i></button>` : ''}
                                             <button class="btn btn-icon text-warning btn-sm" onclick="abrirModalObservacion('${r.id}')" title="Agregar Observación" style="padding: 4px;"><i class="material-icons-round">add_comment</i></button>
-                                            <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo(null, '${r.id}', true)" title="Editar Detalles" style="padding: 4px;"><i class="ph ph-pencil-simple"></i></button>
+                                            <button class="btn btn-icon btn-sm" onclick="abrirModalFormRiesgo(null, '${r.id}', true)" title="Editar Detalles" style="padding: 4px;"><i class="material-icons-round">edit</i></button>
                                         </div>
                                     </td>
                                 </tr>
