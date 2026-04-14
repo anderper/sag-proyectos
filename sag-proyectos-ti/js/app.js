@@ -30,17 +30,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- Sidebar Toggle ---
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
     sidebar.classList.toggle('open');
+    backdrop.classList.toggle('open');
 }
 
-// Close sidebar on click out for mobile
-document.addEventListener('click', (e) => {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.querySelector('.sidebar-toggle');
-    if (window.innerWidth <= 900 && 
-        !sidebar.contains(e.target) && 
-        !toggleBtn.contains(e.target)) {
+// Close sidebar on navigation for mobile
+window.addEventListener('hashchange', () => {
+    if (window.innerWidth <= 900) {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
         sidebar.classList.remove('open');
+        backdrop.classList.remove('open');
     }
 });
 
