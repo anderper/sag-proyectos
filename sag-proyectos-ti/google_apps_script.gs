@@ -1,6 +1,6 @@
 /**
- * GOOGLE APPS SCRIPT - BACKEND SAG PROYECTOS TI (VERSIÓN 2.0)
- * Ahora permite insertar, actualizar y ELIMINAR filas según el ID.
+ * GOOGLE APPS SCRIPT - BACKEND SAG PROYECTOS TI (VERSIÓN 2.1)
+ * Permite insertar, actualizar, ELIMINAR y REEMPLAZAR MASIVAMENTE filas.
  */
 
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
@@ -93,7 +93,12 @@ function doPost(e) {
     
     if (!sheet) {
       sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetName);
-      sheet.appendRow(Object.keys(params.data));
+      // Crear cabeceras según el tipo de acción
+      if (action === 'replace_all' && params.rows && params.rows.length > 0) {
+        sheet.appendRow(Object.keys(params.rows[0]));
+      } else if (params.data) {
+        sheet.appendRow(Object.keys(params.data));
+      }
     }
 
     const dataRows = sheet.getDataRange().getValues();
@@ -104,6 +109,27 @@ function doPost(e) {
       const newRow = headers.map(h => params.data[h] !== undefined ? params.data[h] : "");
       sheet.appendRow(newRow);
       return createResponse({ success: true });
+    }
+
+    // Borra todas las filas (menos la cabecera) y luego inserta el nuevo conjunto de datos
+    if (action === "replace_all") {
+      const rows = params.rows; // Array de objetos
+      if (!rows || !Array.isArray(rows)) return createResponse({ error: "rows vacío" });
+
+      // Limpiar todas las filas de datos (preservar cabecera en fila 1)
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.deleteRows(2, lastRow - 1);
+      }
+
+      // Insertar las nuevas filas
+      const currentHeaders = sheet.getDataRange().getValues()[0];
+      rows.forEach(rowObj => {
+        const newRow = currentHeaders.map(h => rowObj[h] !== undefined ? rowObj[h] : "");
+        sheet.appendRow(newRow);
+      });
+
+      return createResponse({ success: true, inserted: rows.length });
     } 
 
     if (action === "upload_gantt" || action === "upload_purchase_doc") {
@@ -225,4 +251,61 @@ function eliminarArchivoPorUrl(url) {
 function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * FUNCIÓN DE LIMPIEZA MANUAL — Ejecutar una sola vez para eliminar duplicados
+ * Selecciona esta función en el editor de Apps Script y presiona "Ejecutar".
+ * Esto borrará todas las filas duplicadas de la hoja "Catalogos", dejando solo valores únicos.
+ */
+function limpiarDuplicadosCatalogos() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Catalogos");
+  if (!sheet) {
+    Logger.log("No se encontró la hoja 'Catalogos'");
+    return;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    Logger.log("La hoja solo tiene cabeceras, nada que limpiar.");
+    return;
+  }
+
+  const headers = data[0];
+  const rows = data.slice(1);
+
+  // Reconstruir catálogos únicos por columna
+  const colSets = {};
+  headers.forEach((h, i) => {
+    colSets[i] = new Set();
+    rows.forEach(row => {
+      const val = (row[i] || "").toString().trim();
+      if (val !== "") colSets[i].add(val);
+    });
+  });
+
+  // Determinar el máximo de valores únicos
+  let maxLen = 0;
+  headers.forEach((h, i) => {
+    maxLen = Math.max(maxLen, colSets[i].size);
+  });
+
+  // Limpiar filas existentes
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    sheet.deleteRows(2, lastRow - 1);
+  }
+
+  // Re-insertar datos únicos
+  const colArrays = {};
+  headers.forEach((h, i) => {
+    colArrays[i] = Array.from(colSets[i]).sort();
+  });
+
+  for (let r = 0; r < maxLen; r++) {
+    const newRow = headers.map((h, i) => colArrays[i][r] || "");
+    sheet.appendRow(newRow);
+  }
+
+  Logger.log("✅ Limpieza completada: " + maxLen + " filas únicas conservadas de " + rows.length + " originales.");
 }

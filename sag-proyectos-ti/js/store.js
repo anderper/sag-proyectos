@@ -167,19 +167,26 @@ const appStore = {
             (cats.estados||[]).length
         );
 
-        // Limpiar pestaña antes de subir (vía Apps Script esto es insert masivo)
-        // Por simplicidad en esta demo, enviamos fila por fila o un bloque
+        // Construir el arreglo de filas a enviar
+        const rows = [];
         for (let i = 0; i < maxLen; i++) {
-            const rowData = {
-                id: `cat-${i}`, // Necesario para la lógica de búsqueda/update del script
-                Sistemas: (cats.sistemas||[])[i] || "",
-                Coordinadores: (cats.coordinadores||[])[i] || "",
-                UnidadUsuaria: (cats.unidadesUsuarias||[])[i] || "",
-                Proveedores: (cats.proveedores||[])[i] || "",
-                Estados: (cats.estados||[])[i] || ""
-            };
-            await this.saveToCloud('Catalogos', rowData, i === 0 ? 'insert' : 'insert'); 
-            // Nota: En una versión pro limpiaríamos la hoja primero, aquí simplemente acumulamos o actualizamos
+            rows.push({
+                Sistemas:       (cats.sistemas||[])[i]          || "",
+                Coordinadores:  (cats.coordinadores||[])[i]     || "",
+                UnidadUsuaria:  (cats.unidadesUsuarias||[])[i]  || "",
+                Proveedores:    (cats.proveedores||[])[i]       || "",
+                Estados:        (cats.estados||[])[i]           || ""
+            });
+        }
+
+        // Usar replace_all: limpia la hoja y reinserta todo en una sola petición
+        try {
+            await fetch(GS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ sheet: 'Catalogos', action: 'replace_all', rows: rows })
+            });
+        } catch (e) {
+            console.error("Error sincronizando catálogos con la nube:", e);
         }
     },
 
